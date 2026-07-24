@@ -1,0 +1,139 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  id                 String  @id @default(cuid())
+  userId             String
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String? @db.Text
+  access_token       String? @db.Text
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String? @db.Text
+  session_state      String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  username      String?   @unique
+  password      String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  role          String?   @default("GKM") // KPMA, GPM, GKM, PIMPINAN_FAKULTAS, PIMPINAN_UNIVERSITAS
+  facultyId     String?
+  prodiId       String?
+
+  accounts      Account[]
+  sessions      Session[]
+  faculty       Faculty?  @relation(fields: [facultyId], references: [id])
+  prodi         Prodi?    @relation(fields: [prodiId], references: [id])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Level {
+  id   String @id @default(cuid())
+  name String @unique
+}
+
+model Setting {
+  id                  String  @id @default(cuid())
+  appscript_url       String?
+  storage_type        String  @default("GDRIVE") // "GDRIVE" or "LOCAL"
+}
+
+model Cycle {
+  id             String  @id @default(cuid())
+  tahun_akademik String
+  semester       String
+  isActive       Boolean @default(false)
+  
+  @@unique([tahun_akademik, semester])
+}
+
+model Document {
+  id          String   @id @default(cuid())
+  type        String   // "PERATURAN" or "INSTRUMEN"
+  title       String
+  description String?  @db.Text
+  fileUrl     String?  @db.Text
+  createdAt   DateTime @default(now())
+}
+
+model Faculty {
+  id     String  @id @default(cuid())
+  name   String
+  prodis Prodi[]
+  users  User[]
+}
+
+model Prodi {
+  id           String        @id @default(cuid())
+  facultyId    String
+  name         String
+  jenjang      String
+  faculty      Faculty       @relation(fields: [facultyId], references: [id])
+  users        User[]
+  monevRecords MonevRecord[]
+}
+
+model Instrument {
+  id                 String        @id // e.g., 'Tabel 1'
+  category           String
+  name               String
+  kriteria           String
+  indikator          String
+  jenjang_peruntukan String
+  questions          String        @db.Text // JSON string
+  monevRecords       MonevRecord[]
+}
+
+model MonevRecord {
+  id                 String  @id @default(cuid())
+  prodiId            String
+  instrumentId       String
+  tahun_akademik     String
+  semester           String
+  analisa_kpma       String? @db.Text
+  tindak_lanjut_kpma String? @db.Text
+  answers            String  @db.Text // JSON string
+  updatedAt          DateTime @default(now()) @updatedAt
+  
+  prodi              Prodi      @relation(fields: [prodiId], references: [id])
+  instrument         Instrument @relation(fields: [instrumentId], references: [id])
+
+  @@unique([prodiId, instrumentId, tahun_akademik, semester])
+}
+

@@ -1,0 +1,61 @@
+"use client";
+
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import SearchableSelect from "@/components/SearchableSelect";
+
+export default function AnalisisForm({ cycles, faculties, selectedCycle, selectedProdi }: any) {
+  const router = useRouter();
+  const [cycleId, setCycleId] = useState(selectedCycle || "");
+  const [prodiId, setProdiId] = useState(selectedProdi || "");
+
+  const handleCycleChange = (val: string) => {
+    setCycleId(val);
+    if (val && prodiId) {
+      router.push(`/master/analisis?cycleId=${val}&prodiId=${prodiId}`);
+    }
+  };
+
+  const handleProdiChange = (val: string) => {
+    setProdiId(val);
+    if (cycleId && val) {
+      router.push(`/master/analisis?cycleId=${cycleId}&prodiId=${val}`);
+    }
+  };
+
+  const cycleOptions = cycles.map((c: any) => ({
+    value: c.id,
+    label: `${c.tahun_akademik} - ${c.semester}`
+  }));
+
+  const prodiOptions = faculties.flatMap((f: any) => 
+    f.prodis.map((p: any) => ({
+      value: p.id,
+      label: `${f.name} - ${p.jenjang} ${p.name}`
+    }))
+  );
+
+  return (
+    <div className="flex flex-col md:flex-row gap-4 items-end">
+      <div className="w-full md:w-1/2">
+        <label className="block text-sm font-medium text-gray-700 mb-1">Siklus</label>
+        <SearchableSelect 
+          options={cycleOptions}
+          value={cycleId}
+          onChange={handleCycleChange}
+          placeholder="-- Pilih Siklus --"
+        />
+      </div>
+
+      <div className="w-full md:w-1/2 flex-1">
+        <label className="block text-sm font-medium text-gray-700 mb-1">Program Studi</label>
+        <SearchableSelect 
+          options={prodiOptions}
+          value={prodiId}
+          onChange={handleProdiChange}
+          placeholder="-- Cari Program Studi --"
+        />
+      </div>
+    </div>
+  );
+}
