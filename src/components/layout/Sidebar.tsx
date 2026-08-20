@@ -66,6 +66,8 @@ export default function Sidebar({ user }: { user: UserData | null }) {
         subLinks: [
           { name: "Laporan MONEV", href: "/laporan" },
           { name: "Analisis MONEV", href: "/master/analisis" },
+          { name: "Laporan Eksekutif (Prodi)", href: "/laporan-eksekutif" },
+          { name: "Laporan Eksekutif (Univ)", href: "/laporan-eksekutif/universitas" },
         ]
       });
     } else {
