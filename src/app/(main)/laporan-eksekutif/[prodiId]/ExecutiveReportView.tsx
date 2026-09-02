@@ -81,7 +81,7 @@ export default function ExecutiveReportView({ data }: ExecutiveReportViewProps) 
   };
 
   return (
-    <div className="max-w-6xl mx-auto bg-gray-50 min-h-screen p-8 print:p-0 print:bg-white text-gray-800 font-sans print:text-xs print:h-[270mm] print:overflow-hidden print:flex print:flex-col">
+    <div className="max-w-6xl mx-auto bg-gray-50 min-h-screen p-8 print:p-0 print:bg-white text-gray-800 font-sans print:text-xs print:h-auto print:overflow-visible print:flex print:flex-col print:max-w-none print:w-full print-fit-page">
       {/* KOP Header */}
       <img src="/kop-kpma.png" alt="KOP KPMA UIKA" className="w-full h-auto mb-2 print:mb-1 border-b-[3px] print:border-b-2 border-gray-900 pb-1" />
 
@@ -116,9 +116,9 @@ export default function ExecutiveReportView({ data }: ExecutiveReportViewProps) 
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 print:gap-2">
+      <div className="grid grid-cols-1 lg:grid-cols-12 print:grid-cols-12 gap-4 print:gap-2">
         {/* Left Column - Donut Chart (3 cols) */}
-        <div className="lg:col-span-4 bg-[#1e293b] rounded-lg shadow-sm p-4 print:p-2 flex flex-col items-center justify-center text-white relative">
+        <div className="lg:col-span-4 print:col-span-4 bg-[#1e293b] rounded-lg shadow-sm p-4 print:p-2 flex flex-col items-center justify-center text-white relative">
           <div className="h-48 print:h-24 w-full flex items-center justify-center">
             <svg viewBox="0 0 100 100" className="w-48 h-48 print:w-24 print:h-24 transform -rotate-90 overflow-visible">
               <circle cx="50" cy="50" r={radius} fill="none" stroke="#334155" strokeWidth="15" />
@@ -147,7 +147,7 @@ export default function ExecutiveReportView({ data }: ExecutiveReportViewProps) 
         </div>
 
         {/* Right Column - Gap & Stats (8 cols) */}
-        <div className="lg:col-span-8 flex flex-col gap-3 print:gap-1.5">
+        <div className="lg:col-span-8 print:col-span-8 flex flex-col gap-3 print:gap-1.5">
           {/* Gap Chart Box */}
           <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-4 print:p-2.5">
             <h3 className="font-bold text-gray-800 mb-3 print:mb-1.5 text-sm print:text-xs">Kesenjangan Klaim Prodi vs. Bukti Terverifikasi</h3>
@@ -231,7 +231,7 @@ export default function ExecutiveReportView({ data }: ExecutiveReportViewProps) 
       </div>
 
       {/* Findings and Recommendations */}
-      <div className="mt-3 print:mt-1.5 grid grid-cols-1 md:grid-cols-2 gap-4 print:gap-3">
+      <div className="mt-3 print:mt-1.5 grid grid-cols-1 md:grid-cols-2 print:grid-cols-2 gap-4 print:gap-3">
         {/* Temuan */}
         <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-4 print:p-2.5">
           <h3 className="font-bold text-gray-800 text-sm print:text-xs mb-2 border-b pb-1">Temuan Utama</h3>

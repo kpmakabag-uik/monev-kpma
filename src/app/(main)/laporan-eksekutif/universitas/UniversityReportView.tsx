@@ -189,7 +189,7 @@ export default function UniversityReportView({ data }: UniversityReportViewProps
         <div className="col-span-12 lg:col-span-6 flex flex-col">
           
           {/* Klaster Chart */}
-          <div className="mb-6">
+          <div className="mb-6 print:break-inside-avoid">
             <h2 className="font-bold text-[13px] text-[#1e293b] uppercase mb-2">
               KESENJANGAN SISTEMIK ANTAR-KLASTER MUTU <span className="normal-case text-gray-500 font-normal">(rata-rata {data.totalProdiEvaluasi} prodi berinstrumen setara)</span>
             </h2>
@@ -223,7 +223,7 @@ export default function UniversityReportView({ data }: UniversityReportViewProps
           </div>
 
           {/* Recommendations */}
-          <div>
+          <div className="print:break-inside-avoid">
             <h2 className="font-bold text-[13px] text-[#1e293b] uppercase mb-2">
               REKOMENDASI STRATEGIS UNTUK REKTOR
             </h2>
