@@ -8,7 +8,7 @@ datasource db {
 }
 
 model account {
-  id                String  @id
+  id                String  @id @default(cuid())
   userId            String
   type              String
   provider          String
@@ -27,16 +27,18 @@ model account {
 }
 
 model cycle {
-  id             String  @id
+  id             String    @id @default(cuid())
   tahun_akademik String
   semester       String
-  isActive       Boolean @default(false)
+  isActive       Boolean   @default(false)
+  startDate      DateTime?
+  endDate        DateTime?
 
   @@unique([tahun_akademik, semester], map: "Cycle_tahun_akademik_semester_key")
 }
 
 model document {
-  id          String   @id
+  id          String   @id @default(cuid())
   type        String
   title       String
   description String?  @db.Text
@@ -45,14 +47,14 @@ model document {
 }
 
 model faculty {
-  id    String  @id
+  id    String  @id @default(cuid())
   name  String
   prodi prodi[]
   user  user[]
 }
 
 model instrument {
-  id                 String        @id
+  id                 String        @id @default(cuid())
   category           String
   name               String
   kriteria           String
@@ -63,41 +65,60 @@ model instrument {
 }
 
 model level {
-  id   String @id
+  id   String @id @default(cuid())
   name String @unique(map: "Level_name_key")
 }
 
 model monevrecord {
-  id                 String     @id
-  prodiId            String
-  instrumentId       String
-  tahun_akademik     String
-  semester           String
-  analisa_kpma       String?    @db.Text
-  tindak_lanjut_kpma String?    @db.Text
-  answers            String     @db.Text
-  updatedAt          DateTime   @default(now())
-  instrument         instrument @relation(fields: [instrumentId], references: [id], onDelete: NoAction, map: "MonevRecord_instrumentId_fkey")
-  prodi              prodi      @relation(fields: [prodiId], references: [id], onDelete: NoAction, map: "MonevRecord_prodiId_fkey")
+  id                  String     @id @default(cuid())
+  prodiId             String
+  instrumentId        String
+  tahun_akademik      String
+  semester            String
+  analisa_kpma        String?    @db.Text
+  tindak_lanjut_kpma  String?    @db.Text
+  answers             String     @db.Text
+  updatedAt           DateTime   @default(now())
+  isAnalysisPublished Boolean    @default(false)
+  analysisPublishedAt DateTime?
+  instrument          instrument @relation(fields: [instrumentId], references: [id], onDelete: NoAction, map: "MonevRecord_instrumentId_fkey")
+  prodi               prodi      @relation(fields: [prodiId], references: [id], onDelete: NoAction, map: "MonevRecord_prodiId_fkey")
 
   @@unique([prodiId, instrumentId, tahun_akademik, semester], map: "MonevRecord_prodiId_instrumentId_tahun_akademik_semester_key")
   @@index([instrumentId], map: "MonevRecord_instrumentId_fkey")
 }
 
+model monevsubmission {
+  id             String    @id @default(cuid())
+  prodiId        String
+  tahun_akademik String
+  semester       String
+  isSubmitted    Boolean   @default(false)
+  submittedAt    DateTime?
+  agreedToPact   Boolean   @default(false)
+  pactAgreedAt   DateTime?
+  pactAgreedBy   String?
+  prodi          prodi     @relation(fields: [prodiId], references: [id], onDelete: Cascade, map: "MonevSubmission_prodiId_fkey")
+
+  @@unique([prodiId, tahun_akademik, semester], map: "MonevSubmission_prodi_cycle_key")
+  @@index([prodiId], map: "MonevSubmission_prodiId_fkey")
+}
+
 model prodi {
-  id          String        @id
-  facultyId   String
-  name        String
-  jenjang     String
-  monevrecord monevrecord[]
-  faculty     faculty       @relation(fields: [facultyId], references: [id], onDelete: NoAction, map: "Prodi_facultyId_fkey")
-  user        user[]
+  id              String            @id @default(cuid())
+  facultyId       String
+  name            String
+  jenjang         String
+  monevrecord     monevrecord[]
+  monevsubmission monevsubmission[]
+  faculty         faculty           @relation(fields: [facultyId], references: [id], onDelete: NoAction, map: "Prodi_facultyId_fkey")
+  user            user[]
 
   @@index([facultyId], map: "Prodi_facultyId_fkey")
 }
 
 model session {
-  id           String   @id
+  id           String   @id @default(cuid())
   sessionToken String   @unique(map: "Session_sessionToken_key")
   userId       String
   expires      DateTime
@@ -107,13 +128,13 @@ model session {
 }
 
 model setting {
-  id            String  @id
+  id            String  @id @default(cuid())
   appscript_url String?
   storage_type  String  @db.VarChar(512)
 }
 
 model user {
-  id            String    @id
+  id            String    @id @default(cuid())
   name          String?
   username      String?   @unique(map: "User_username_key")
   password      String?

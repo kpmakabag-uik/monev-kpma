@@ -47,7 +47,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const instruments = sortInstruments(instrumentsData);
 
   // 3. Get Faculties & Prodis based on role
-  let facultyWhere: Prisma.FacultyWhereInput = {};
+  let facultyWhere: Prisma.facultyWhereInput = {};
   if (userRole !== "KPMA" && userRole !== "PIMPINAN_UNIVERSITAS") {
     if (userFaculty) {
       facultyWhere = { id: userFaculty };
@@ -57,7 +57,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const allAllowedFaculties = await prisma.faculty.findMany({
     where: facultyWhere,
     include: {
-      prodis: userProdi ? { where: { id: userProdi } } : true,
+      prodi: userProdi ? { where: { id: userProdi } } : true,
     },
     orderBy: { name: "asc" }
   });
@@ -66,16 +66,16 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     .filter(f => !facultyId || f.id === facultyId)
     .map(f => ({
       ...f,
-      prodis: f.prodis.filter(p => !prodiId || p.id === prodiId)
+      prodis: f.prodi.filter((p: any) => !prodiId || p.id === prodiId)
     }))
     .filter(f => f.prodis.length > 0);
 
   // Flat list of prodi ids
-  const prodiIds = faculties.flatMap(f => f.prodis.map(p => p.id));
+  const prodiIds = faculties.flatMap(f => f.prodis.map((p: any) => p.id));
   const prodiCount = prodiIds.length;
 
   // 4. Get Monev Records for active cycle
-  const monevRecordsRaw = await prisma.monevRecord.findMany({
+  const monevRecordsRaw = await prisma.monevrecord.findMany({
     where: {
       tahun_akademik: tahunAkademik,
       semester: semester,
@@ -83,7 +83,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     }
   });
 
-  const monevRecords = monevRecordsRaw.map((r) => {
+  const monevRecords = monevRecordsRaw.map((r: any) => {
     let dec = r.answers as string;
     if (dec && dec.includes(":")) dec = decrypt(dec);
     let ans = {};
@@ -92,7 +92,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   });
 
   // 4.5 Get Recent Activity
-  const recentActivity = await prisma.monevRecord.findMany({
+  const recentActivity = await prisma.monevrecord.findMany({
     where: {
       tahun_akademik: tahunAkademik,
       semester: semester,
@@ -131,7 +131,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       let gkmAns = 0, gpmAns = 0, kbAns = 0, kpmaAns = 0;
       
       for (const inst of applicableInsts) {
-        const record = monevRecords.find(r => r.prodiId === prodi.id && r.instrumentId === inst.id);
+        const record = monevRecords.find((r: any) => r.prodiId === prodi.id && r.instrumentId === inst.id);
         if (record) {
            if (record.analisa_kpma) kpmaAns++;
            try {
@@ -254,7 +254,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                   <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Real-time Feed</span>
                 </div>
                 <div className="divide-y divide-gray-50">
-                  {recentActivity.map((act) => (
+                  {recentActivity.map((act: any) => (
                     <div key={act.id} className="px-6 py-3 hover:bg-blue-50/30 transition-colors flex items-center justify-between group">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-xs font-bold">

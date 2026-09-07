@@ -33,7 +33,7 @@ export async function getExecutiveSummary(prodiId: string, cycleId?: string) {
     );
 
     // 4. Fetch Monev Records for this Prodi & Cycle
-    const records = await prisma.monevRecord.findMany({
+    const records = await prisma.monevrecord.findMany({
       where: {
         prodiId,
         tahun_akademik: cycle.tahun_akademik,
@@ -56,7 +56,7 @@ export async function getExecutiveSummary(prodiId: string, cycleId?: string) {
         qs = JSON.parse(inst.questions || "[]");
       } catch {}
 
-      const record = records.find(r => r.instrumentId === inst.id);
+      const record = records.find((r: any) => r.instrumentId === inst.id);
       let answers: Record<string, any> = {};
       
       if (record) {
@@ -153,9 +153,13 @@ export async function getExecutiveSummary(prodiId: string, cycleId?: string) {
 
     rekomendasi.push(`Tutup siklus PPEPP: susun rekap temuan Monev, RTL dengan penanggung jawab & tenggat waktu, serta laporan pemantauan status tindak lanjut.`);
 
-    // Add manual notes if they exist
-    if (manualNotes.length > 0) {
-      rekomendasi.push(`Catatan Auditor (Tambahan): ${manualNotes.slice(0, 2).join(' | ')}`);
+    const isAnyPublished = records.some((r: any) => r.isAnalysisPublished);
+    const isKpma = session.user.role === "KPMA" || session.user.role === "PIMPINAN_UNIVERSITAS";
+
+    // Add manual notes if they exist and are published (or viewer is KPMA)
+    const allowedManualNotes = (isAnyPublished || isKpma) ? manualNotes : [];
+    if (allowedManualNotes.length > 0) {
+      rekomendasi.push(`Catatan Auditor (Tambahan): ${allowedManualNotes.slice(0, 2).join(' | ')}`);
     }
 
     return {
@@ -176,7 +180,8 @@ export async function getExecutiveSummary(prodiId: string, cycleId?: string) {
         klasterData,
         temuanUtama,
         rekomendasi,
-        manualNotes
+        manualNotes: allowedManualNotes,
+        isAnalysisPublished: isAnyPublished
       }
     };
 
@@ -204,7 +209,7 @@ export async function getUniversityExecutiveSummary(cycleId?: string) {
     // 2. Fetch all prodis, faculties, instruments, and records for this cycle
     const allProdis = await prisma.prodi.findMany({ include: { faculty: true } });
     const allInstruments = await prisma.instrument.findMany();
-    const allRecords = await prisma.monevRecord.findMany({
+    const allRecords = await prisma.monevrecord.findMany({
       where: {
         tahun_akademik: cycle.tahun_akademik,
         semester: cycle.semester
@@ -247,7 +252,7 @@ export async function getUniversityExecutiveSummary(cycleId?: string) {
           prodiKlasterLocal[category] = { total: 0, verified: 0 };
         }
         
-        const record = allRecords.find(r => r.prodiId === prodi.id && r.instrumentId === inst.id);
+        const record = allRecords.find((r: any) => r.prodiId === prodi.id && r.instrumentId === inst.id);
         let answers: Record<string, any> = {};
         if (record) {
           try { answers = JSON.parse(record.answers || "{}"); } catch {}

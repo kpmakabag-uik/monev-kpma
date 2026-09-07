@@ -27,7 +27,14 @@ export default async function MonevFormDetailPage({
     }
   }
 
-  const cycle = await prisma.cycle.findFirst({ where: { isActive: true } }) || { tahun_akademik: "2025/2026", semester: "Genap" };
+  const cycle = (await prisma.cycle.findFirst({ where: { isActive: true } })) || {
+    id: "default",
+    tahun_akademik: "2025/2026",
+    semester: "Genap",
+    isActive: true,
+    startDate: null as Date | null,
+    endDate: null as Date | null,
+  };
 
   // Determine existing record for the cycleulty details
   const prodiDetail = await prisma.prodi.findUnique({
@@ -53,7 +60,7 @@ export default async function MonevFormDetailPage({
   };
 
   // 4. Fetch existing Record if any
-  const existingRecord = await prisma.monevRecord.findUnique({
+  const existingRecord = await prisma.monevrecord.findUnique({
     where: {
       prodiId_instrumentId_tahun_akademik_semester: {
         prodiId,
@@ -63,6 +70,34 @@ export default async function MonevFormDetailPage({
       }
     }
   });
+
+  // Check submission & due date lock status
+  const submission = await prisma.monevsubmission.findUnique({
+    where: {
+      prodiId_tahun_akademik_semester: {
+        prodiId,
+        tahun_akademik: cycle.tahun_akademik,
+        semester: cycle.semester
+      }
+    }
+  });
+
+  let isExpired = false;
+  let lockReason = "";
+  if (cycle.endDate) {
+    const end = new Date(cycle.endDate);
+    end.setHours(23, 59, 59, 999);
+    if (new Date() > end) {
+      isExpired = true;
+      lockReason = `Batas waktu pengisian siklus ini telah berakhir pada ${new Date(cycle.endDate).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}.`;
+    }
+  }
+
+  if (submission?.isSubmitted) {
+    lockReason = `Pengisian MONEV telah difinalisasi dan disahkan dengan Pakta Integritas pada ${submission.submittedAt ? new Date(submission.submittedAt).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" }) : ""}.`;
+  }
+
+  const isLocked = isExpired || (submission?.isSubmitted ?? false);
 
   let decryptedAnswers = "{}";
   if (existingRecord?.answers) {
@@ -87,6 +122,9 @@ export default async function MonevFormDetailPage({
         initialAnswers={existingRecord ? JSON.parse(decryptedAnswers) : {}}
         initialAnalisa={existingRecord?.analisa_kpma || ""}
         userRole={userRole || "GKM"}
+        isLocked={isLocked}
+        lockReason={lockReason}
+        isAnalysisPublished={existingRecord?.isAnalysisPublished ?? false}
       />
     </div>
   );

@@ -4,44 +4,54 @@
     "main.pengisian_monev",
     "main.laporan_analisis",
     "main.laporan_analisis.laporan_monev",
-    "main.laporan_analisis.analisis_monev",
     "main.laporan_analisis.laporan_eksekutif_prodi",
     "main.laporan_analisis.laporan_eksekutif_univ",
-    "main.laporan_monev_only",
+    "main.laporan_analisis.analisis_monev",
+    "regulasi.menu",
     "regulasi.peraturan",
     "regulasi.panduan",
+    "master.data_master",
     "master.siklus",
-    "master.organisasi",
     "master.organisasi.fakultas",
     "master.organisasi.prodi",
     "master.organisasi.jenjang",
     "master.instrumen",
     "master.pengguna",
+    "konfigurasi.pengaturan",
     "konfigurasi.umum",
     "konfigurasi.penyimpanan",
     "konfigurasi.hak_akses"
   ],
   "GPM": [
     "main.dashboard",
-    "main.laporan_monev_only",
+    "main.pengisian_monev",
+    "main.laporan_analisis.laporan_monev",
+    "main.laporan_analisis.analisis_monev",
+    "regulasi.menu",
     "regulasi.peraturan",
-    "regulasi.panduan",
-    "main.pengisian_monev"
+    "regulasi.panduan"
   ],
   "GKM": [
     "main.dashboard",
     "main.pengisian_monev",
+    "main.laporan_analisis.laporan_monev",
+    "main.laporan_analisis.analisis_monev",
+    "regulasi.menu",
     "regulasi.peraturan",
     "regulasi.panduan"
   ],
   "PIMPINAN_FAKULTAS": [
     "main.dashboard",
-    "main.laporan_monev_only",
+    "main.laporan_analisis.laporan_monev",
+    "main.laporan_analisis.analisis_monev",
+    "regulasi.menu",
     "regulasi.peraturan"
   ],
   "PIMPINAN_UNIVERSITAS": [
     "main.dashboard",
-    "main.laporan_monev_only",
+    "main.laporan_analisis.laporan_monev",
+    "main.laporan_analisis.analisis_monev",
+    "regulasi.menu",
     "regulasi.peraturan"
   ]
 }

@@ -4,6 +4,7 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { sortInstruments } from "@/lib/utils";
 import { useState } from "react";
+import Link from "next/link";
 
 interface AnswerItem {
   evaluasiDiri?: string;
@@ -37,6 +38,8 @@ interface MonevRecordData {
   answers: Record<string, AnswerItem>;
   analisa_kpma?: string | null;
   tindak_lanjut_kpma?: string | null;
+  isAnalysisPublished?: boolean;
+  analysisPublishedAt?: Date | string | null;
 }
 
 interface Question {
@@ -48,9 +51,10 @@ interface ReportViewProps {
   prodi: Prodi;
   records: MonevRecordData[];
   cycle: { tahun: string; semester: string };
+  userRole?: string;
 }
 
-export default function ReportView({ prodi, records, cycle }: ReportViewProps) {
+export default function ReportView({ prodi, records, cycle, userRole }: ReportViewProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   
   // Sort records based on instrument ID using the helper
@@ -173,22 +177,33 @@ export default function ReportView({ prodi, records, cycle }: ReportViewProps) {
   return (
     <div className="space-y-6 pb-20">
       {/* Control Bar */}
-      <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex justify-between items-center sticky top-0 z-10">
+      <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sticky top-0 z-10">
         <div className="flex items-center gap-2 text-sm text-gray-600">
           <span className="font-bold text-institusi">{sortedRecords.length}</span> Instrumen terisi
         </div>
-        <button
-          onClick={generatePDF}
-          disabled={isGenerating || sortedRecords.length === 0}
-          className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-6 py-2.5 rounded-lg font-bold transition-all shadow-md disabled:opacity-50"
-        >
-          {isGenerating ? (
-            <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-          ) : (
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
-          )}
-          {isGenerating ? "Menyiapkan PDF..." : "Cetak Laporan (PDF)"}
-        </button>
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <Link
+            href={`/master/analisis?prodiId=${prodi.id}`}
+            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-lg text-xs font-bold transition-all shadow-md active:scale-95"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <span>Dokumen Analisis KPMA</span>
+          </Link>
+          <button
+            onClick={generatePDF}
+            disabled={isGenerating || sortedRecords.length === 0}
+            className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-5 py-2.5 rounded-lg text-xs font-bold transition-all shadow-md disabled:opacity-50 active:scale-95"
+          >
+            {isGenerating ? (
+              <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+            ) : (
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 00-2 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+            )}
+            {isGenerating ? "Menyiapkan PDF..." : "Cetak Laporan (PDF)"}
+          </button>
+        </div>
       </div>
 
       {/* Preview Section */}
@@ -268,16 +283,46 @@ export default function ReportView({ prodi, records, cycle }: ReportViewProps) {
               </div>
               
               {/* KPMA Analysis section */}
-              {(record.analisa_kpma || record.tindak_lanjut_kpma) && (
-                <div className="bg-blue-50/30 p-6 grid grid-cols-1 md:grid-cols-2 gap-6 border-t border-gray-100">
-                  <div className="space-y-2">
-                    <h4 className="text-[10px] font-black text-blue-800 uppercase tracking-wider">Analisa KPMA</h4>
-                    <p className="text-sm text-gray-700 whitespace-pre-wrap">{record.analisa_kpma || "-"}</p>
+              {record.isAnalysisPublished ? (
+                (record.analisa_kpma || record.tindak_lanjut_kpma) && (
+                  <div className="bg-blue-50/30 p-6 grid grid-cols-1 md:grid-cols-2 gap-6 border-t border-gray-100">
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-[10px] font-black text-blue-800 uppercase tracking-wider">Analisa KPMA</h4>
+                        <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded font-bold border border-emerald-200">
+                          ✓ Resmi Terbit
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-700 whitespace-pre-wrap">{record.analisa_kpma || "-"}</p>
+                    </div>
+                    <div className="space-y-2">
+                      <h4 className="text-[10px] font-black text-blue-800 uppercase tracking-wider">Tindak Lanjut KPMA</h4>
+                      <p className="text-sm text-gray-700 whitespace-pre-wrap">{record.tindak_lanjut_kpma || "-"}</p>
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <h4 className="text-[10px] font-black text-blue-800 uppercase tracking-wider">Tindak Lanjut KPMA</h4>
-                    <p className="text-sm text-gray-700 whitespace-pre-wrap">{record.tindak_lanjut_kpma || "-"}</p>
+                )
+              ) : userRole === "KPMA" ? (
+                (record.analisa_kpma || record.tindak_lanjut_kpma) && (
+                  <div className="bg-amber-50/40 p-6 grid grid-cols-1 md:grid-cols-2 gap-6 border-t border-amber-200">
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-[10px] font-black text-amber-800 uppercase tracking-wider">Analisa KPMA</h4>
+                        <span className="text-[10px] text-amber-800 bg-amber-100 px-2 py-0.5 rounded font-bold border border-amber-300">
+                          🔒 DRAFT (Hanya terlihat oleh KPMA)
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-700 whitespace-pre-wrap">{record.analisa_kpma || "-"}</p>
+                    </div>
+                    <div className="space-y-2">
+                      <h4 className="text-[10px] font-black text-amber-800 uppercase tracking-wider">Tindak Lanjut KPMA</h4>
+                      <p className="text-sm text-gray-700 whitespace-pre-wrap">{record.tindak_lanjut_kpma || "-"}</p>
+                    </div>
                   </div>
+                )
+              ) : (
+                <div className="bg-gray-50/60 p-4 border-t border-gray-100 flex items-center gap-2.5 text-gray-500 text-xs italic">
+                  <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                  <span>Hasil analisis dan rekomendasi tindak lanjut KPMA sedang dalam proses perumusan internal (Draft) dan akan dipublikasikan setelah diverifikasi.</span>
                 </div>
               )}
             </div>

@@ -10,7 +10,12 @@ export async function updateSetting(id: string | undefined, data: { appscript_ur
   const session = await auth();
   if (session?.user?.role !== "KPMA") return;
   if (id) await prisma.setting.update({ where: { id }, data });
-  else await prisma.setting.create({ data: { ...data } });
+  else await prisma.setting.create({ 
+    data: { 
+      appscript_url: data.appscript_url, 
+      storage_type: data.storage_type || "google_drive" 
+    } 
+  });
 }
 
 // CYCLE
@@ -22,8 +27,35 @@ export async function getActiveCycle() {
 export async function createCycle(formData: FormData) {
   const session = await auth();
   if (session?.user?.role !== "KPMA") return;
-  await prisma.cycle.create({ data: { tahun_akademik: formData.get("tahun_akademik") as string, semester: formData.get("semester") as string } });
+  const startDateVal = formData.get("startDate") as string;
+  const endDateVal = formData.get("endDate") as string;
+  await prisma.cycle.create({ 
+    data: { 
+      id: crypto.randomUUID(),
+      tahun_akademik: formData.get("tahun_akademik") as string, 
+      semester: formData.get("semester") as string,
+      startDate: startDateVal ? new Date(startDateVal) : null,
+      endDate: endDateVal ? new Date(endDateVal) : null,
+    } 
+  });
   revalidatePath("/master/cycles");
+}
+
+export async function updateCycleDates(id: string, formData: FormData) {
+  const session = await auth();
+  if (session?.user?.role !== "KPMA") return { error: "Akses Ditolak" };
+  const startDateVal = formData.get("startDate") as string;
+  const endDateVal = formData.get("endDate") as string;
+  await prisma.cycle.update({
+    where: { id },
+    data: {
+      startDate: startDateVal ? new Date(startDateVal) : null,
+      endDate: endDateVal ? new Date(endDateVal) : null,
+    }
+  });
+  revalidatePath("/master/cycles");
+  revalidatePath("/monev");
+  return { success: true };
 }
 
 export async function deleteCycle(id: string) {
@@ -37,7 +69,7 @@ export async function deleteCycle(id: string) {
     // Hapus paksa semua data MonevRecord yang terkait dengan siklus ini terlebih dahulu,
     // baru kemudian hapus siklusnya (Cascade Delete Manual).
     await prisma.$transaction([
-      prisma.monevRecord.deleteMany({
+      prisma.monevrecord.deleteMany({
         where: {
           tahun_akademik: cycle.tahun_akademik,
           semester: cycle.semester

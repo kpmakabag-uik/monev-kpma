@@ -13,24 +13,34 @@ const DEFAULT_PERMISSIONS: RolePermissions = {
   "KPMA": getAllMenuKeys(), // Admin gets everything
   "GPM": [
     "main.dashboard",
-    "main.laporan_monev_only",
+    "main.pengisian_monev",
+    "main.laporan_analisis.laporan_monev",
+    "main.laporan_analisis.analisis_monev",
+    "regulasi.menu",
     "regulasi.peraturan",
     "regulasi.panduan"
   ],
   "GKM": [
     "main.dashboard",
     "main.pengisian_monev",
+    "main.laporan_analisis.laporan_monev",
+    "main.laporan_analisis.analisis_monev",
+    "regulasi.menu",
     "regulasi.peraturan",
     "regulasi.panduan"
   ],
   "PIMPINAN_FAKULTAS": [
     "main.dashboard",
-    "main.laporan_monev_only",
+    "main.laporan_analisis.laporan_monev",
+    "main.laporan_analisis.analisis_monev",
+    "regulasi.menu",
     "regulasi.peraturan"
   ],
   "PIMPINAN_UNIVERSITAS": [
     "main.dashboard",
-    "main.laporan_monev_only",
+    "main.laporan_analisis.laporan_monev",
+    "main.laporan_analisis.analisis_monev",
+    "regulasi.menu",
     "regulasi.peraturan"
   ]
 };

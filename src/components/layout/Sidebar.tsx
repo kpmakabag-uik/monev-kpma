@@ -33,6 +33,25 @@ export default function Sidebar({ user }: { user: UserData | null }) {
       .catch(console.error);
   }, []);
 
+  const isHrefActive = (href?: string) => {
+    if (!href) return false;
+    if (href === "/dashboard") return pathname === "/dashboard";
+    if (href === "/laporan-eksekutif") {
+      return pathname === "/laporan-eksekutif" || (pathname.startsWith("/laporan-eksekutif/") && !pathname.startsWith("/laporan-eksekutif/universitas"));
+    }
+    return pathname === href || pathname.startsWith(href + "/");
+  };
+
+  useEffect(() => {
+    // Auto open parent menu if current route is inside it
+    for (const menu of ALL_MENUS) {
+      if (menu.subMenus?.some(sub => isHrefActive(sub.href))) {
+        setOpenMenu(menu.name);
+        break;
+      }
+    }
+  }, [pathname]);
+
   const toggleMenu = (name: string) => {
     setOpenMenu(openMenu === name ? null : name);
   };
@@ -60,7 +79,14 @@ export default function Sidebar({ user }: { user: UserData | null }) {
         
         const menuToAdd = { ...menu };
         if (allowedSubs) {
-          menuToAdd.subMenus = allowedSubs;
+          if (allowedSubs.length === 1) {
+            // If only 1 sublink is allowed, render directly as a single menu item
+            menuToAdd.name = allowedSubs[0].name;
+            menuToAdd.href = allowedSubs[0].href;
+            menuToAdd.subMenus = undefined;
+          } else {
+            menuToAdd.subMenus = allowedSubs;
+          }
         }
         
         grouped.get(menu.group)?.push(menuToAdd);
@@ -76,9 +102,9 @@ export default function Sidebar({ user }: { user: UserData | null }) {
   return (
     <>
       {/* Mobile Toggle */}
-      <div className="md:hidden print:hidden flex items-center justify-between bg-institusi p-4 text-white">
-        <div className="font-bold text-lg flex items-center gap-2">
-          <Image src="/logo-kpma.png" alt="Logo" width={32} height={32} className="bg-white rounded-full p-0.5" />
+      <div className="md:hidden print:hidden flex items-center justify-between bg-institusi p-3 text-white">
+        <div className="font-bold text-base flex items-center gap-2">
+          <Image src="/logo-kpma.png" alt="Logo" width={28} height={28} className="bg-white rounded-full p-0.5" />
           MONEV PT
         </div>
         <button onClick={() => setIsOpen(!isOpen)} className="focus:outline-none">
@@ -95,51 +121,52 @@ export default function Sidebar({ user }: { user: UserData | null }) {
       {/* Sidebar Content */}
       <div className={`${isOpen ? 'fixed inset-0 z-50 overflow-auto' : 'hidden'} md:flex md:relative md:w-64 bg-institusi text-white h-screen flex-col shadow-xl transition-all duration-300 print:hidden`}>
         
-        {/* Header Section */}
-        <div className="flex items-center gap-4 px-6 py-8 border-b border-white/10 shrink-0">
-          <div className="bg-white p-2 rounded-xl shadow-inner flex items-center justify-center">
-             <Image src="/logo-kpma.png" alt="Logo" width={40} height={40} className="object-contain" />
+        {/* Header Section - Compact */}
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-white/10 shrink-0">
+          <div className="bg-white p-1.5 rounded-lg shadow-inner flex items-center justify-center shrink-0">
+             <Image src="/logo-kpma.png" alt="Logo" width={32} height={32} className="object-contain" />
           </div>
-          <div>
-            <h1 className="font-bold text-xl tracking-tight text-white uppercase">MONEV PT</h1>
-            <p className="text-[10px] text-blue-200 font-medium tracking-widest uppercase opacity-80">IAPS 5.1 Standard</p>
+          <div className="overflow-hidden">
+            <h1 className="font-bold text-lg tracking-tight text-white uppercase leading-tight">MONEV PT</h1>
+            <p className="text-[9px] text-blue-200 font-medium tracking-widest uppercase opacity-80">IAPS 5.1 Standard</p>
           </div>
         </div>
 
-        {/* Navigation */}
-        <div className="flex-1 overflow-y-auto px-4 custom-scrollbar">
-          <nav className="space-y-8 py-4">
+        {/* Navigation - Ergonomic & Scroll-Free */}
+        <div className="flex-1 overflow-y-auto px-3 py-2 custom-scrollbar">
+          <nav className="space-y-4">
             {groups.map((group, groupIdx) => (
               <div key={groupIdx}>
-                {group.title !== "MAIN" && (
-                  <h3 className="px-4 text-[11px] font-black text-blue-300/60 mb-4 tracking-[0.2em] uppercase">{group.title}</h3>
-                )}
-                <div className="space-y-1.5">
+                <h3 className="px-3 text-[10px] font-black text-blue-300/70 mb-1.5 mt-1 tracking-[0.15em] uppercase flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
+                  {group.title}
+                </h3>
+                <div className="space-y-1">
                   {group.links.map((link, linkIdx) => {
-                    const isActive = link.href ? pathname.startsWith(link.href) && (link.href !== "/dashboard" || pathname === "/dashboard") : false;
+                    const isActive = isHrefActive(link.href);
                     const hasSubLinks = link.subMenus && link.subMenus.length > 0;
                     const isSubOpen = openMenu === link.name;
-                    const hasActiveSublink = hasSubLinks && link.subMenus!.some(sub => sub.href && pathname.startsWith(sub.href));
+                    const hasActiveSublink = hasSubLinks && link.subMenus!.some(sub => isHrefActive(sub.href));
                     
                     return (
                       <div key={linkIdx}>
                         {hasSubLinks ? (
                           <button
                             onClick={() => toggleMenu(link.name)}
-                            className={`flex items-center justify-between w-full px-4 py-3 rounded-xl transition-all duration-200 group border-2 ${
+                            className={`flex items-center justify-between w-full px-3 py-2 rounded-lg transition-all duration-150 group border ${
                               hasActiveSublink 
-                                ? "bg-blue-600 text-white border-white/40 shadow-lg" 
-                                : "text-blue-100/70 hover:bg-white/10 hover:text-white border-transparent"
+                                ? "bg-blue-600 text-white border-white/30 shadow-md font-semibold" 
+                                : "text-blue-100/80 hover:bg-white/10 hover:text-white border-transparent"
                             }`}
                           >
-                            <div className="flex items-center gap-3.5">
+                            <div className="flex items-center gap-2.5 min-w-0">
                               {link.iconSvg && (
-                                <svg className={`w-5 h-5 ${hasActiveSublink ? 'text-white' : 'text-blue-300/50 group-hover:text-blue-200'} transition-colors`} fill="none" stroke="currentColor" viewBox="0 0 24 24" dangerouslySetInnerHTML={{ __html: link.iconSvg }}></svg>
+                                <svg className={`w-4 h-4 shrink-0 ${hasActiveSublink ? 'text-white' : 'text-blue-300/60 group-hover:text-blue-200'} transition-colors`} fill="none" stroke="currentColor" viewBox="0 0 24 24" dangerouslySetInnerHTML={{ __html: link.iconSvg }}></svg>
                               )}
-                              <span className={`text-sm tracking-wide ${hasActiveSublink ? 'font-bold' : 'font-medium'}`}>{link.name}</span>
+                              <span className="text-xs tracking-wide truncate">{link.name}</span>
                             </div>
                             <svg 
-                              className={`w-4 h-4 transition-transform duration-200 ${isSubOpen ? 'rotate-180' : ''}`} 
+                              className={`w-3.5 h-3.5 shrink-0 transition-transform duration-200 ${isSubOpen ? 'rotate-180' : ''}`} 
                               fill="none" viewBox="0 0 24 24" stroke="currentColor"
                             >
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -148,32 +175,32 @@ export default function Sidebar({ user }: { user: UserData | null }) {
                         ) : (
                           <Link
                             href={link.href || "#"}
-                            className={`flex items-center gap-3.5 px-4 py-3 rounded-xl transition-all duration-200 group border-2 ${
+                            className={`flex items-center gap-2.5 px-3 py-2 rounded-lg transition-all duration-150 group border ${
                               isActive 
-                                ? "bg-blue-600 text-white border-white/40 shadow-lg" 
-                                : "text-blue-100/70 hover:bg-white/10 hover:text-white border-transparent"
+                                ? "bg-blue-600 text-white border-white/30 shadow-md font-semibold" 
+                                : "text-blue-100/80 hover:bg-white/10 hover:text-white border-transparent"
                             }`}
                             onClick={() => setIsOpen(false)}
                           >
                             {link.iconSvg && (
-                              <svg className={`w-5 h-5 ${isActive ? 'text-white' : 'text-blue-300/50 group-hover:text-blue-200'} transition-colors`} fill="none" stroke="currentColor" viewBox="0 0 24 24" dangerouslySetInnerHTML={{ __html: link.iconSvg }}></svg>
+                              <svg className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-blue-300/60 group-hover:text-blue-200'} transition-colors`} fill="none" stroke="currentColor" viewBox="0 0 24 24" dangerouslySetInnerHTML={{ __html: link.iconSvg }}></svg>
                             )}
-                            <span className={`text-sm tracking-wide ${isActive ? 'font-bold' : 'font-medium'}`}>{link.name}</span>
+                            <span className="text-xs tracking-wide truncate">{link.name}</span>
                           </Link>
                         )}
 
                         {/* Sub Links */}
                         {hasSubLinks && isSubOpen && (
-                          <div className="mt-1 ml-11 space-y-1">
+                          <div className="mt-1 ml-6 pl-2 border-l border-white/20 space-y-0.5">
                             {link.subMenus!.map((subLink, subIdx) => {
-                              const isSubActive = subLink.href ? pathname.startsWith(subLink.href) : false;
+                              const isSubActive = isHrefActive(subLink.href);
                               return (
                                 <Link
                                   key={subIdx}
                                   href={subLink.href || "#"}
-                                  className={`block px-3 py-2 rounded-lg text-sm transition-all duration-200 ${
+                                  className={`block px-2.5 py-1.5 rounded-md text-xs transition-all duration-150 ${
                                     isSubActive 
-                                      ? "text-white bg-blue-500/50 font-bold" 
+                                      ? "text-white bg-blue-500/60 font-bold shadow-sm" 
                                       : "text-blue-200/70 hover:bg-white/10 hover:text-white"
                                   }`}
                                   onClick={() => setIsOpen(false)}
@@ -193,8 +220,8 @@ export default function Sidebar({ user }: { user: UserData | null }) {
           </nav>
         </div>
 
-        {/* Sticky Bottom Account Section */}
-        <div className="mt-auto border-t border-blue-400/20 bg-institusi/50 backdrop-blur-sm p-6 space-y-4">
+        {/* Sticky Bottom Account Section - Compact */}
+        <div className="mt-auto border-t border-blue-400/20 bg-institusi/60 backdrop-blur-sm p-4 space-y-3 shrink-0">
           
           {user?.realRole === "KPMA" && (
             <ImpersonateSelector 

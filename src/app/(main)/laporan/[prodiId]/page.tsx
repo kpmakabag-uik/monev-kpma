@@ -53,6 +53,7 @@ export default async function LaporanDetailPage({
         prodi={result.prodi} 
         records={result.records} 
         cycle={{ tahun, semester }} 
+        userRole={session.user.role || "GKM"}
       />
     </div>
   );

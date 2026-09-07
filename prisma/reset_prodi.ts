@@ -59,7 +59,7 @@ async function main() {
   console.log("Memulai pembersihan data Prodi & Fakultas...");
 
   // 1. Hapus data yang bergantung
-  await prisma.monevRecord.deleteMany({});
+  await prisma.monevrecord.deleteMany({});
   
   // 2. Reset relasi user agar tidak error saat prodi/fakultas dihapus
   await prisma.user.updateMany({

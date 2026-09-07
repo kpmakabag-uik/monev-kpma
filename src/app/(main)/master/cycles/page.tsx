@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import CycleForm from "./CycleForm";
 import DeleteButton from "@/components/DeleteButton";
+import EditCycleDatesModal from "./EditCycleDatesModal";
 import { setActiveCycle, deleteCycle } from "@/app/actions/master";
 
 export default async function CyclesPage() {
@@ -11,17 +12,53 @@ export default async function CyclesPage() {
 
   const cycles = await prisma.cycle.findMany({ orderBy: { tahun_akademik: "desc" } });
 
+  const formatDate = (date: Date | null) => {
+    if (!date) return "-";
+    return new Date(date).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
+  };
+
+  const getDueDateBadge = (cycle: { endDate: Date | null }) => {
+    if (!cycle.endDate) {
+      return <span className="text-xs text-gray-400">Belum diatur</span>;
+    }
+    const end = new Date(cycle.endDate);
+    end.setHours(23, 59, 59, 999);
+    const now = new Date();
+    const diffMs = end.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 0) {
+      return (
+        <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-red-100 text-red-700 border border-red-200">
+          Waktu Habis (Terkunci)
+        </span>
+      );
+    } else if (diffDays === 0) {
+      return (
+        <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-amber-100 text-amber-700 border border-amber-200 animate-pulse">
+          Hari Terakhir!
+        </span>
+      );
+    } else {
+      return (
+        <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+          Sisa {diffDays} hari
+        </span>
+      );
+    }
+  };
+
   return (
     <div className="flex flex-col gap-6 max-w-5xl">
       <div>
         <h1 className="text-2xl font-bold text-gray-800">Master Data: Log Siklus</h1>
-        <p className="text-gray-500 text-sm mt-1">Mengelola riwayat siklus akademik MONEV</p>
+        <p className="text-gray-500 text-sm mt-1">Mengelola riwayat siklus akademik dan batas waktu (due date) pengisian MONEV</p>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="flex items-center justify-between p-4 border-b border-gray-100 bg-gray-50/50">
           <h2 className="font-bold text-gray-700 flex items-center gap-2">
-            <span>🕒</span> Riwayat Siklus Pengisian
+            <span>🕒</span> Riwayat Siklus & Batas Waktu
           </h2>
           <CycleForm />
         </div>
@@ -29,25 +66,34 @@ export default async function CyclesPage() {
           <table className="w-full text-sm text-left">
             <thead className="bg-gray-50 text-gray-600 font-semibold border-b border-gray-100">
               <tr>
-                <th className="px-6 py-4">Tahun Akademik</th>
-                <th className="px-6 py-4">Semester</th>
-                <th className="px-6 py-4 text-center">Status Siklus</th>
-                <th className="px-6 py-4 text-center">Aksi</th>
+                <th className="px-5 py-4">Tahun Akademik</th>
+                <th className="px-4 py-4">Semester</th>
+                <th className="px-5 py-4">Batas Pengisian</th>
+                <th className="px-4 py-4 text-center">Status Siklus</th>
+                <th className="px-5 py-4 text-center">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {cycles.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-6 py-8 text-center text-gray-500">
+                  <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
                     Belum ada siklus yang ditambahkan.
                   </td>
                 </tr>
               ) : (
                 cycles.map((cycle) => (
                   <tr key={cycle.id} className="hover:bg-blue-50/30 transition-colors">
-                    <td className="px-6 py-4 font-medium text-gray-800">{cycle.tahun_akademik}</td>
-                    <td className="px-6 py-4 text-gray-600">{cycle.semester}</td>
-                    <td className="px-6 py-4 text-center">
+                    <td className="px-5 py-4 font-medium text-gray-800">{cycle.tahun_akademik}</td>
+                    <td className="px-4 py-4 text-gray-600">{cycle.semester}</td>
+                    <td className="px-5 py-4">
+                      <div className="flex flex-col gap-1">
+                        <span className="text-xs text-gray-700">
+                          {formatDate(cycle.startDate)} s.d. {formatDate(cycle.endDate)}
+                        </span>
+                        <div>{getDueDateBadge(cycle)}</div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-4 text-center">
                       {cycle.isActive ? (
                         <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-100 text-green-700 text-xs font-bold border border-green-200">
                           <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
@@ -59,18 +105,21 @@ export default async function CyclesPage() {
                         </span>
                       )}
                     </td>
-                    <td className="px-6 py-4 text-center space-x-2">
-                      {!cycle.isActive && (
-                        <form action={setActiveCycle.bind(null, cycle.id)} className="inline">
-                          <button 
-                            type="submit" 
-                            className="text-xs bg-institusi text-white px-3 py-1.5 rounded-lg hover:bg-blue-800 font-medium transition-colors shadow-sm"
-                          >
-                            Set Aktif
-                          </button>
-                        </form>
-                      )}
-                      <DeleteButton id={cycle.id} deleteAction={deleteCycle} />
+                    <td className="px-5 py-4 text-center">
+                      <div className="flex items-center justify-center gap-2 flex-wrap">
+                        <EditCycleDatesModal cycle={cycle} />
+                        {!cycle.isActive && (
+                          <form action={setActiveCycle.bind(null, cycle.id)} className="inline">
+                            <button 
+                              type="submit" 
+                              className="text-xs bg-institusi text-white px-2.5 py-1.5 rounded-lg hover:bg-blue-800 font-medium transition-colors shadow-sm"
+                            >
+                              Set Aktif
+                            </button>
+                          </form>
+                        )}
+                        <DeleteButton id={cycle.id} deleteAction={deleteCycle} />
+                      </div>
                     </td>
                   </tr>
                 ))

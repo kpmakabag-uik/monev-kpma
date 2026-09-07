@@ -3,6 +3,7 @@
 import prisma from "@/lib/prisma";
 import { auth } from "@/auth";
 import { encrypt, decrypt } from "@/lib/encryption";
+import { revalidatePath } from "next/cache";
 
 interface AnswerItem {
   evaluasiDiri?: string;
@@ -46,6 +47,35 @@ export async function saveMonevRecord({
       }
     }
 
+    // Auto-Lock Verification for GKM
+    if (role === "GKM") {
+      const cycle = await prisma.cycle.findUnique({
+        where: {
+          tahun_akademik_semester: { tahun_akademik: tahunAkademik, semester }
+        }
+      });
+      if (cycle?.endDate) {
+        const end = new Date(cycle.endDate);
+        end.setHours(23, 59, 59, 999);
+        if (new Date() > end) {
+          return { success: false, error: "Batas waktu pengisian MONEV untuk siklus ini telah berakhir (Form Terkunci)." };
+        }
+      }
+
+      const submission = await prisma.monevsubmission.findUnique({
+        where: {
+          prodiId_tahun_akademik_semester: {
+            prodiId,
+            tahun_akademik: tahunAkademik,
+            semester
+          }
+        }
+      });
+      if (submission?.isSubmitted) {
+        return { success: false, error: "Pengisian telah difinalisasi dan dikunci dengan Pakta Integritas." };
+      }
+    }
+
     // In a real app we could rigorously validate if they changed restricted fields, 
     // but the Client Component already disables them.
     // For upsert, we might want to fetch existing first, and ONLY apply modifications on allowed fields
@@ -53,7 +83,7 @@ export async function saveMonevRecord({
     // Simple path: Upsert all fields that are passed from client
     // Note: To be secure, Backend should reconstruct the JSON by only replacing allowed fields.
 
-    const existing = await prisma.monevRecord.findUnique({
+    const existing = await prisma.monevrecord.findUnique({
       where: {
         prodiId_instrumentId_tahun_akademik_semester: {
           prodiId, instrumentId, tahun_akademik: tahunAkademik, semester
@@ -89,7 +119,7 @@ export async function saveMonevRecord({
     const finalAnalisa = role === "KPMA" ? analisaKpma : (existing?.analisa_kpma || "");
     const finalTindakLanjut = role === "KPMA" ? tindakLanjutKpma : (existing?.tindak_lanjut_kpma || "");
 
-    await prisma.monevRecord.upsert({
+    await prisma.monevrecord.upsert({
       where: {
         prodiId_instrumentId_tahun_akademik_semester: {
           prodiId, instrumentId, tahun_akademik: tahunAkademik, semester
@@ -153,7 +183,7 @@ export async function importPreviousCycleData(prodiId: string) {
     if (!prevCycle) return { success: false, error: "Tidak ada data siklus sebelumnya yang bisa diimpor." };
 
     // 3. Get all records from previous cycle for this prodi
-    const prevRecords = await prisma.monevRecord.findMany({
+    const prevRecords = await prisma.monevrecord.findMany({
       where: {
         prodiId,
         tahun_akademik: prevCycle.tahun_akademik,
@@ -187,7 +217,7 @@ export async function importPreviousCycleData(prodiId: string) {
         });
 
         // Find current record
-        const existing = await tx.monevRecord.findUnique({
+        const existing = await tx.monevrecord.findUnique({
           where: {
             prodiId_instrumentId_tahun_akademik_semester: {
               prodiId,
@@ -216,7 +246,7 @@ export async function importPreviousCycleData(prodiId: string) {
           finalAnswers = currentAns;
         }
 
-        await tx.monevRecord.upsert({
+        await tx.monevrecord.upsert({
           where: {
             prodiId_instrumentId_tahun_akademik_semester: {
               prodiId,
@@ -265,7 +295,7 @@ export async function getProdiMonevReport(prodiId: string, tahunAkademik: string
       }
     }
 
-    const records = await prisma.monevRecord.findMany({
+    const records = await prisma.monevrecord.findMany({
       where: {
         prodiId,
         tahun_akademik: tahunAkademik,
@@ -283,7 +313,7 @@ export async function getProdiMonevReport(prodiId: string, tahunAkademik: string
 
     return {
       success: true,
-      records: records.map(r => {
+      records: records.map((r: any) => {
         let decryptedAnswers = r.answers as string;
         if (decryptedAnswers && decryptedAnswers.includes(":")) {
           decryptedAnswers = decrypt(decryptedAnswers);
@@ -301,3 +331,190 @@ export async function getProdiMonevReport(prodiId: string, tahunAkademik: string
     return { success: false, error: message };
   }
 }
+
+export async function submitFinalMonev({
+  prodiId,
+  tahunAkademik,
+  semester,
+  pactAgreedBy
+}: {
+  prodiId: string;
+  tahunAkademik: string;
+  semester: string;
+  pactAgreedBy: string;
+}) {
+  try {
+    const session = await auth();
+    if (!session?.user) return { success: false, error: "Unauthorized" };
+
+    const role = session.user.role;
+    if (role === "GKM" && session.user.prodiId !== prodiId) {
+      return { success: false, error: "Forbidden: Anda tidak memiliki akses untuk Prodi ini." };
+    }
+
+    await prisma.monevsubmission.upsert({
+      where: {
+        prodiId_tahun_akademik_semester: {
+          prodiId,
+          tahun_akademik: tahunAkademik,
+          semester
+        }
+      },
+      update: {
+        isSubmitted: true,
+        submittedAt: new Date(),
+        agreedToPact: true,
+        pactAgreedAt: new Date(),
+        pactAgreedBy: pactAgreedBy || session.user.name || "PIC Prodi"
+      },
+      create: {
+        prodiId,
+        tahun_akademik: tahunAkademik,
+        semester,
+        isSubmitted: true,
+        submittedAt: new Date(),
+        agreedToPact: true,
+        pactAgreedAt: new Date(),
+        pactAgreedBy: pactAgreedBy || session.user.name || "PIC Prodi"
+      }
+    });
+
+    return { success: true };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Terjadi kesalahan";
+    return { success: false, error: message };
+  }
+}
+
+export async function reopenMonevSubmission({
+  prodiId,
+  tahunAkademik,
+  semester
+}: {
+  prodiId: string;
+  tahunAkademik: string;
+  semester: string;
+}) {
+  try {
+    const session = await auth();
+    if (session?.user?.role !== "KPMA") return { success: false, error: "Akses Ditolak: Hanya KPMA yang dapat membuka kembali kuncian pengisian." };
+
+    await prisma.monevsubmission.update({
+      where: {
+        prodiId_tahun_akademik_semester: {
+          prodiId,
+          tahun_akademik: tahunAkademik,
+          semester
+        }
+      },
+      data: {
+        isSubmitted: false
+      }
+    });
+
+    return { success: true };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Terjadi kesalahan";
+    return { success: false, error: message };
+  }
+}
+
+export async function togglePublishAnalysis({
+  prodiId,
+  tahunAkademik,
+  semester,
+  isPublished
+}: {
+  prodiId: string;
+  tahunAkademik: string;
+  semester: string;
+  isPublished: boolean;
+}) {
+  try {
+    const session = await auth();
+    if (session?.user?.role !== "KPMA") return { success: false, error: "Akses Ditolak: Hanya KPMA yang dapat mengubah status publikasi." };
+
+    await prisma.monevrecord.updateMany({
+      where: {
+        prodiId,
+        tahun_akademik: tahunAkademik,
+        semester
+      },
+      data: {
+        isAnalysisPublished: isPublished,
+        analysisPublishedAt: isPublished ? new Date() : null
+      }
+    });
+
+    revalidatePath("/master/analisis");
+    revalidatePath("/laporan");
+    revalidatePath("/laporan-eksekutif");
+
+    return { success: true };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Terjadi kesalahan";
+    return { success: false, error: message };
+  }
+}
+
+export async function publishAnalysisBatchByFaculty({
+  facultyId,
+  tahunAkademik,
+  semester,
+  isPublished
+}: {
+  facultyId: string;
+  tahunAkademik: string;
+  semester: string;
+  isPublished: boolean;
+}) {
+  try {
+    const session = await auth();
+    if (session?.user?.role !== "KPMA") {
+      return { success: false, error: "Akses Ditolak: Hanya KPMA yang dapat mengubah status publikasi." };
+    }
+
+    // Determine target prodis
+    const prodiWhere: any = {};
+    if (facultyId && facultyId !== "ALL") {
+      prodiWhere.facultyId = facultyId;
+    }
+
+    const targetProdis = await prisma.prodi.findMany({
+      where: prodiWhere,
+      select: { id: true, name: true }
+    });
+
+    if (targetProdis.length === 0) {
+      return { success: false, error: "Tidak ada Program Studi pada kriteria yang dipilih." };
+    }
+
+    const prodiIds = targetProdis.map(p => p.id);
+
+    const result = await prisma.monevrecord.updateMany({
+      where: {
+        prodiId: { in: prodiIds },
+        tahun_akademik: tahunAkademik,
+        semester
+      },
+      data: {
+        isAnalysisPublished: isPublished,
+        analysisPublishedAt: isPublished ? new Date() : null
+      }
+    });
+
+    revalidatePath("/master/analisis");
+    revalidatePath("/laporan");
+    revalidatePath("/laporan-eksekutif");
+
+    return {
+      success: true,
+      updatedRecords: result.count,
+      prodiCount: prodiIds.length
+    };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Terjadi kesalahan";
+    return { success: false, error: message };
+  }
+}
+

@@ -118,64 +118,79 @@ export default function PermissionsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {menus.map((menu, idx) => (
-                <React.Fragment key={menu.key}>
-                  {/* Parent Menu Row */}
-                  <tr className="hover:bg-gray-50/50 transition-colors bg-gray-50/30">
-                    <td className="p-4 border-r border-gray-200 sticky left-0 bg-white z-10 shadow-[1px_0_0_0_#e5e7eb]">
-                      <div className="flex flex-col">
-                        <span className="font-bold text-gray-800">{menu.name}</span>
-                        <span className="text-[10px] text-gray-400 font-mono mt-0.5">{menu.key}</span>
-                      </div>
-                    </td>
-                    {ROLES.map(role => {
-                      const isChecked = permissions[role]?.includes(menu.key) || false;
-                      const disabled = role === "KPMA"; // Prevent removing admin access to prevent lockout
-                      return (
-                        <td key={role} className="p-4 text-center align-middle">
-                          <input
-                            type="checkbox"
-                            checked={isChecked}
-                            disabled={disabled}
-                            onChange={() => handleToggle(role, menu.key)}
-                            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-40 cursor-pointer"
-                          />
-                        </td>
-                      );
-                    })}
-                  </tr>
-                  
-                  {/* Submenus Rows */}
-                  {menu.subMenus && menu.subMenus.map((sub) => (
-                    <tr key={sub.key} className="hover:bg-gray-50/50 transition-colors">
-                      <td className="p-4 border-r border-gray-200 sticky left-0 bg-white z-10 shadow-[1px_0_0_0_#e5e7eb]">
-                        <div className="flex flex-col pl-6">
-                          <div className="flex items-center gap-2">
-                            <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
-                            <span className="font-medium text-gray-700 text-sm">{sub.name}</span>
-                          </div>
-                          <span className="text-[10px] text-gray-400 font-mono mt-0.5 pl-5">{sub.key}</span>
-                        </div>
+              {Array.from(new Set(menus.map(m => m.group))).map((groupName) => {
+                const groupMenus = menus.filter(m => m.group === groupName);
+                return (
+                  <React.Fragment key={groupName}>
+                    {/* Category Divider */}
+                    <tr className="bg-slate-100 border-y border-slate-200">
+                      <td colSpan={1 + ROLES.length} className="py-2 px-4 font-bold text-xs text-slate-700 tracking-wider uppercase flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-institusi"></span>
+                        KATEGORI: {groupName}
                       </td>
-                      {ROLES.map(role => {
-                        const isChecked = permissions[role]?.includes(sub.key) || false;
-                        const disabled = role === "KPMA";
-                        return (
-                          <td key={role} className="p-4 text-center align-middle">
-                            <input
-                              type="checkbox"
-                              checked={isChecked}
-                              disabled={disabled}
-                              onChange={() => handleToggle(role, sub.key)}
-                              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-40 cursor-pointer"
-                            />
-                          </td>
-                        );
-                      })}
                     </tr>
-                  ))}
-                </React.Fragment>
-              ))}
+
+                    {groupMenus.map((menu) => (
+                      <React.Fragment key={menu.key}>
+                        {/* Parent Menu Row */}
+                        <tr className="hover:bg-gray-50/50 transition-colors bg-white">
+                          <td className="p-3.5 border-r border-gray-200 sticky left-0 bg-white z-10 shadow-[1px_0_0_0_#e5e7eb]">
+                            <div className="flex flex-col">
+                              <span className="font-bold text-gray-800 text-sm">{menu.name}</span>
+                              <span className="text-[10px] text-gray-400 font-mono mt-0.5">{menu.key}</span>
+                            </div>
+                          </td>
+                          {ROLES.map(role => {
+                            const isChecked = permissions[role]?.includes(menu.key) || false;
+                            const disabled = role === "KPMA"; // Prevent removing admin access to prevent lockout
+                            return (
+                              <td key={role} className="p-3 text-center align-middle">
+                                <input
+                                  type="checkbox"
+                                  checked={isChecked}
+                                  disabled={disabled}
+                                  onChange={() => handleToggle(role, menu.key)}
+                                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-40 cursor-pointer"
+                                />
+                              </td>
+                            );
+                          })}
+                        </tr>
+                        
+                        {/* Submenus Rows */}
+                        {menu.subMenus && menu.subMenus.map((sub) => (
+                          <tr key={sub.key} className="hover:bg-gray-50/50 transition-colors bg-gray-50/30">
+                            <td className="p-3 border-r border-gray-200 sticky left-0 bg-gray-50/30 z-10 shadow-[1px_0_0_0_#e5e7eb]">
+                              <div className="flex flex-col pl-6">
+                                <div className="flex items-center gap-2">
+                                  <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
+                                  <span className="font-medium text-gray-700 text-sm">{sub.name}</span>
+                                </div>
+                                <span className="text-[10px] text-gray-400 font-mono mt-0.5 pl-5">{sub.key}</span>
+                              </div>
+                            </td>
+                            {ROLES.map(role => {
+                              const isChecked = permissions[role]?.includes(sub.key) || false;
+                              const disabled = role === "KPMA";
+                              return (
+                                <td key={role} className="p-3 text-center align-middle">
+                                  <input
+                                    type="checkbox"
+                                    checked={isChecked}
+                                    disabled={disabled}
+                                    onChange={() => handleToggle(role, sub.key)}
+                                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-40 cursor-pointer"
+                                  />
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        ))}
+                      </React.Fragment>
+                    ))}
+                  </React.Fragment>
+                );
+              })}
             </tbody>
           </table>
         </div>

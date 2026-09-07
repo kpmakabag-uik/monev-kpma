@@ -11,7 +11,7 @@ export default function DashboardFilter({ faculties }: { faculties: any[] }) {
   const prodiId = searchParams.get("prodiId") || "";
 
   // Check if filtering is applicable for this user role
-  const canFilter = faculties.length > 1 || (faculties.length === 1 && faculties[0]?.prodis.length > 1);
+  const canFilter = faculties.length > 1 || (faculties.length === 1 && ((faculties[0]?.prodis?.length ?? 0) > 1 || (faculties[0]?.prodi?.length ?? 0) > 1));
   if (!canFilter) return null;
 
   const facultyOptions = [
@@ -20,11 +20,14 @@ export default function DashboardFilter({ faculties }: { faculties: any[] }) {
   ];
   
   const selectedFaculty = faculties.find((f: any) => f.id === facultyId);
-  const availableProdis = selectedFaculty ? selectedFaculty.prodis : faculties.flatMap((f: any) => f.prodis);
+  const rawProdis = selectedFaculty 
+    ? (selectedFaculty.prodis || selectedFaculty.prodi || []) 
+    : faculties.flatMap((f: any) => (f.prodis || f.prodi || []));
+  const availableProdis = (rawProdis || []).filter((p: any) => p && p.id);
   
   const prodiOptions = [
     { value: "", label: "-- Semua Program Studi --" },
-    ...availableProdis.map((p: any) => ({ value: p.id, label: `${p.jenjang} - ${p.name}` }))
+    ...availableProdis.map((p: any) => ({ value: p.id, label: `${p.jenjang || ''} - ${p.name}` }))
   ];
 
   const updateFilters = (facId: string, prodId: string) => {

@@ -61,6 +61,25 @@ export default function CycleForm() {
                 </select>
               </div>
 
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Tanggal Mulai</label>
+                  <input 
+                    type="date" 
+                    name="startDate"
+                    className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-institusi focus:border-institusi outline-none text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Batas Waktu (Due Date)</label>
+                  <input 
+                    type="date" 
+                    name="endDate"
+                    className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-institusi focus:border-institusi outline-none text-sm"
+                  />
+                </div>
+              </div>
+
               <div className="pt-2 flex gap-3 justify-end">
                 <button 
                   type="button" 

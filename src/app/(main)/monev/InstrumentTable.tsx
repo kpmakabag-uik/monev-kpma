@@ -20,11 +20,13 @@ export interface InstrumentWithProgress {
 export default function InstrumentTable({ 
   instruments, 
   prodiId,
-  userRole
+  userRole,
+  isLocked = false
 }: { 
   instruments: InstrumentWithProgress[], 
   prodiId: string,
-  userRole?: string | null
+  userRole?: string | null,
+  isLocked?: boolean
 }) {
   const [search, setSearch] = useState("");
 
@@ -182,9 +184,20 @@ export default function InstrumentTable({
                   <td className="p-4 text-sm text-right align-middle">
                     <Link 
                       href={`/monev/${prodiId}/${encodeURIComponent(inst.id)}`}
-                      className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-institusi hover:bg-blue-800 shadow-sm transition-all whitespace-nowrap"
+                      className={`inline-flex items-center justify-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-md shadow-sm transition-all whitespace-nowrap ${
+                        isLocked && !isAuditor
+                          ? "bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300"
+                          : "text-white bg-institusi hover:bg-blue-800"
+                      }`}
                     >
-                      Buka Form
+                      {isLocked && !isAuditor ? (
+                        <>
+                          <svg className="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                          <span>Lihat Form</span>
+                        </>
+                      ) : (
+                        <span>Buka Form</span>
+                      )}
                     </Link>
                   </td>
                 </tr>

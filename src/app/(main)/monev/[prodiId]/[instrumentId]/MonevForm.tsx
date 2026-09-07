@@ -37,6 +37,9 @@ function MonevFormInner({
   initialAnswers,
   initialAnalisa,
   userRole,
+  isLocked = false,
+  lockReason = "",
+  isAnalysisPublished = false,
 }: {
   instrumentId: string;
   instrumentName: string;
@@ -52,6 +55,9 @@ function MonevFormInner({
   initialAnswers: MonevAnswers;
   initialAnalisa: string;
   userRole: string;
+  isLocked?: boolean;
+  lockReason?: string;
+  isAnalysisPublished?: boolean;
 }) {
   const [answers, setAnswers] = useState<MonevAnswers>(initialAnswers || {});
   const [analisa, setAnalisa] = useState(initialAnalisa || "");
@@ -68,7 +74,7 @@ function MonevFormInner({
   const [targetNavUrl, setTargetNavUrl] = useState<string | null>(null);
   const [isDiscarding, setIsDiscarding] = useState(false);
 
-  const canEditGKM = userRole === "GKM" || userRole === "KPMA";
+  const canEditGKM = (userRole === "GKM" && !isLocked) || userRole === "KPMA";
   const canEditGPM = userRole === "GPM" || userRole === "KPMA";
   const canEditKPMA = userRole === "KPMA";
   
@@ -317,6 +323,17 @@ function MonevFormInner({
           </div>
         </div>
       </div>
+
+      {isLocked && userRole === "GKM" && (
+        <div className="bg-amber-500 text-white px-6 py-3 flex items-center gap-3 shadow-inner">
+          <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+          </svg>
+          <div className="text-xs font-medium">
+            <span className="font-bold uppercase tracking-wide">Formulir Terkunci (Mode Hanya-Lihat):</span> {lockReason || "Batas waktu pengisian telah berakhir atau data telah difinalisasi dengan Pakta Integritas."}
+          </div>
+        </div>
+      )}
       
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse table-fixed">
@@ -464,16 +481,38 @@ function MonevFormInner({
         </table>
       </div>
 
-      <div className="bg-[#ccdee0] p-2 md:px-8 font-bold text-sm text-gray-800 border-t border-b border-[#9ac2e6]/50">
-        Analisis KPMA UIKA Bogor
+      <div className="bg-[#ccdee0] p-2 md:px-8 font-bold text-sm text-gray-800 border-t border-b border-[#9ac2e6]/50 flex items-center justify-between">
+        <span>Analisis & Catatan Tim KPMA UIKA Bogor</span>
+        {isAnalysisPublished ? (
+          <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded border border-emerald-300 flex items-center gap-1">
+            <span>✓</span> Resmi Terbit
+          </span>
+        ) : (
+          <span className="text-[10px] bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded border border-amber-300 flex items-center gap-1">
+            <span>🔒</span> Draft Internal KPMA
+          </span>
+        )}
       </div>
-      <div className="bg-[#e7f1f5] border-b border-[#9ac2e6]/50">
-         <textarea
-            className={`w-full min-h-[120px] p-4 text-[13px] border-none focus:ring-0 resize-y ${canEditKPMA ? 'bg-white' : 'bg-transparent text-gray-800'}`}
-            disabled={!canEditKPMA}
+      <div className="bg-[#e7f1f5] border-b border-[#9ac2e6]/50 p-4 md:px-8">
+        {canEditKPMA ? (
+          <textarea
+            className="w-full min-h-[120px] p-3 text-[13px] border border-gray-300 rounded-lg focus:ring-1 focus:ring-[#2a75c3] resize-y bg-white"
             value={analisa}
             onChange={(e) => setAnalisa(e.target.value)}
+            placeholder="Tuliskan catatan analisis evaluasi mutu dari tim KPMA..."
           />
+        ) : isAnalysisPublished ? (
+          <div className="text-[13px] text-gray-800 whitespace-pre-wrap leading-relaxed bg-white/70 p-4 rounded-lg border border-blue-200/50">
+            {analisa ? analisa : <span className="text-gray-500 italic">Tidak ada catatan khusus dari KPMA untuk butir ini.</span>}
+          </div>
+        ) : (
+          <div className="text-[12px] text-gray-500 italic flex items-center gap-2 p-2">
+            <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+            <span>Catatan analisis sedang dirumuskan oleh tim KPMA (Status: Draft) dan akan ditampilkan kepada Program Studi setelah resmi dipublikasikan.</span>
+          </div>
+        )}
       </div>
 
       {(!isReadOnly) && (
@@ -485,13 +524,20 @@ function MonevFormInner({
                 </span>
               )}
             </div>
-            <button
-              onClick={() => handleSave(true)}
-              disabled={isSaving}
-              className="bg-[#2a75c3] hover:bg-[#1f5791] text-white px-6 py-2.5 rounded-md text-sm font-bold uppercase transition-all shadow-sm disabled:opacity-50"
-            >
-              {isSaving ? "Menyimpan..." : "Simpan Data"}
-            </button>
+            {isLocked && userRole === "GKM" ? (
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-gray-200 text-gray-700 rounded-md text-xs font-bold border border-gray-300">
+                <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                Formulir Terkunci (Mode Hanya-Lihat)
+              </div>
+            ) : (
+              <button
+                onClick={() => handleSave(true)}
+                disabled={isSaving}
+                className="bg-[#2a75c3] hover:bg-[#1f5791] text-white px-6 py-2.5 rounded-md text-sm font-bold uppercase transition-all shadow-sm disabled:opacity-50"
+              >
+                {isSaving ? "Menyimpan..." : "Simpan Data"}
+              </button>
+            )}
         </div>
       )}
 

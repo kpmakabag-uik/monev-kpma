@@ -10,6 +10,7 @@ async function main() {
   const setting = await prisma.setting.create({
     data: {
       appscript_url: "",
+      storage_type: "google_drive",
     },
   });
   console.log({ setting });

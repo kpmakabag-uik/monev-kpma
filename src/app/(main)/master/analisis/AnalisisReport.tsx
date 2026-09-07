@@ -1,12 +1,15 @@
 "use client";
 
 import { useMemo, useState, useEffect } from "react";
+import { togglePublishAnalysis } from "@/app/actions/monev";
 
-export default function AnalisisReport({ data, ketuaKpma }: { data: any, ketuaKpma: string }) {
+export default function AnalisisReport({ data, ketuaKpma, userRole }: { data: any, ketuaKpma: string, userRole?: string }) {
   const { cycle, prodi, instruments, records } = data;
 
   const [printDate, setPrintDate] = useState("...........................");
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
+  const [isPublished, setIsPublished] = useState(records.some((r: any) => r.isAnalysisPublished));
+  const [isUpdatingPublish, setIsUpdatingPublish] = useState(false);
 
   const handleScrollToDetail = (id: string) => {
     setHighlightedId(id);
@@ -130,16 +133,74 @@ export default function AnalisisReport({ data, ketuaKpma }: { data: any, ketuaKp
     window.print();
   };
 
+  const handleTogglePublish = async (publish: boolean) => {
+    setIsUpdatingPublish(true);
+    try {
+      const res = await togglePublishAnalysis({
+        prodiId: prodi.id,
+        tahunAkademik: cycle.tahun_akademik,
+        semester: cycle.semester,
+        isPublished: publish
+      });
+      if (res.success) {
+        setIsPublished(publish);
+        alert(publish ? "Hasil analisis berhasil dipublikasikan ke Program Studi." : "Hasil analisis ditarik kembali ke status Draft (disembunyikan dari Prodi).");
+      } else {
+        alert(res.error || "Gagal mengubah status publikasi.");
+      }
+    } catch {
+      alert("Terjadi kesalahan sistem.");
+    } finally {
+      setIsUpdatingPublish(false);
+    }
+  };
+
   return (
     <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100">
-      <div className="flex justify-end mb-4 print:hidden">
-        <button 
-          onClick={handlePrint}
-          className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-medium transition-colors"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 00-2 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
-          Print / PDF
-        </button>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6 print:hidden border-b border-gray-100 pb-4">
+        <div className="flex items-center gap-2">
+          {isPublished ? (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold border border-emerald-300">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              Status: Terbit (Dapat Dilihat Prodi)
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-100 text-amber-800 text-xs font-bold border border-amber-300">
+              <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+              Status: Draft Internal KPMA (Tersembunyi dari Prodi)
+            </span>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2.5">
+          {userRole === "KPMA" && (
+            isPublished ? (
+              <button
+                onClick={() => handleTogglePublish(false)}
+                disabled={isUpdatingPublish}
+                className="flex items-center gap-2 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 px-3.5 py-2 rounded-lg font-bold text-xs transition-colors disabled:opacity-50"
+              >
+                🔒 {isUpdatingPublish ? "Menyimpan..." : "Tarik ke Draft"}
+              </button>
+            ) : (
+              <button
+                onClick={() => handleTogglePublish(true)}
+                disabled={isUpdatingPublish}
+                className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 rounded-lg font-bold text-xs transition-colors shadow-sm disabled:opacity-50"
+              >
+                📢 {isUpdatingPublish ? "Menyimpan..." : "Publikasikan ke Prodi"}
+              </button>
+            )
+          )}
+
+          <button 
+            onClick={handlePrint}
+            className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 px-3.5 py-2 rounded-lg font-bold text-xs transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 00-2 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+            Print / PDF
+          </button>
+        </div>
       </div>
 
       <div className="print-container text-gray-800">
