@@ -14,6 +14,7 @@ interface AnswerItem {
   pilihan?: "Ya" | "Tidak" | string;
   evaluasiDiri?: string;
   buktiLinks?: string[];
+  buktiNames?: Record<string, string>;
   kesesuaianBukti?: string;
   catatanAuditor?: string;
 }
@@ -74,6 +75,10 @@ function MonevFormInner({
   const [targetNavUrl, setTargetNavUrl] = useState<string | null>(null);
   const [isDiscarding, setIsDiscarding] = useState(false);
 
+  // States for Custom File Renaming
+  const [editingFileLink, setEditingFileLink] = useState<string | null>(null);
+  const [editFileNameValue, setEditFileNameValue] = useState<string>("");
+
   const canEditGKM = (userRole === "GKM" && !isLocked) || userRole === "KPMA";
   const canEditGPM = userRole === "GPM" || userRole === "KPMA";
   const canEditKPMA = userRole === "KPMA";
@@ -124,6 +129,16 @@ function MonevFormInner({
       if (res.ok && data.success) {
         setIsDirty(true);
         setNewlyUploadedUrls(prev => [...prev, ...data.links]);
+
+        const newNames: Record<string, string> = {};
+        if (Array.isArray(data.files)) {
+          data.files.forEach((f: { url: string; originalName: string }) => {
+            if (f.url && f.originalName) {
+              newNames[f.url] = f.originalName;
+            }
+          });
+        }
+
         setAnswers((prev) => {
           const currentAnsForQ = prev[qId] || {};
           const currentLinks = Array.isArray(currentAnsForQ.buktiLinks) ? currentAnsForQ.buktiLinks : [];
@@ -132,7 +147,11 @@ function MonevFormInner({
             [qId]: {
               ...currentAnsForQ,
               pilihan: "Ya", // Otomatis centang Ya
-              buktiLinks: [...currentLinks, ...data.links]
+              buktiLinks: [...currentLinks, ...data.links],
+              buktiNames: {
+                ...(currentAnsForQ.buktiNames || {}),
+                ...newNames
+              }
             }
           };
         });
@@ -244,6 +263,29 @@ function MonevFormInner({
     } catch {
       console.warn("Could not delete file from storage, but link removed from form.");
     }
+  };
+
+  const handleSaveFileName = (qId: string, link: string) => {
+    const trimmed = editFileNameValue.trim();
+    if (!trimmed) {
+      setEditingFileLink(null);
+      return;
+    }
+    setIsDirty(true);
+    setAnswers((prev) => {
+      const cur = prev[qId] || {};
+      return {
+        ...prev,
+        [qId]: {
+          ...cur,
+          buktiNames: {
+            ...(cur.buktiNames || {}),
+            [link]: trimmed
+          }
+        }
+      };
+    });
+    setEditingFileLink(null);
   };
 
   useEffect(() => {
@@ -425,24 +467,94 @@ function MonevFormInner({
                         </div>
                       )}
                       
-                      {/* Daftar Link View */}
-                      <div className="flex flex-col gap-1 mt-1">
-                        {Array.isArray(ans.buktiLinks) && ans.buktiLinks.map((link: string, i: number) => (
-                          <div key={i} className="flex items-center gap-1">
-                            <a href={link} target="_blank" rel="noopener noreferrer" className="bg-[#2a75c3] text-white text-[10px] px-2 py-1 rounded w-max hover:bg-blue-800 flex items-center shrink-0">
-                              📄 View File {i+1}
-                            </a>
-                            {userRole === "KPMA" && (
-                              <button 
-                                onClick={() => handleDeleteFile(q.id, link)}
-                                className="bg-red-500 hover:bg-red-700 text-white text-[10px] w-5 h-5 flex items-center justify-center rounded shrink-0 transition-colors"
-                                title="Hapus File"
+                      {/* Daftar Link View Dokumen Bukti */}
+                      <div className="flex flex-col gap-1.5 mt-1">
+                        {Array.isArray(ans.buktiLinks) && ans.buktiLinks.map((link: string, i: number) => {
+                          const seq = String(i + 1).padStart(2, "0");
+                          const defaultName = `Dokumen Bukti ${instrumentId}-1${letter}-${seq}`;
+                          const displayName = ans.buktiNames?.[link] || defaultName;
+                          const isEditing = editingFileLink === link;
+
+                          if (isEditing) {
+                            return (
+                              <div key={i} className="flex items-center gap-1 w-full bg-blue-50 p-1.5 rounded-md border border-blue-200">
+                                <input
+                                  type="text"
+                                  value={editFileNameValue}
+                                  onChange={(e) => setEditFileNameValue(e.target.value)}
+                                  className="flex-1 text-[11px] p-1 bg-white border border-blue-300 rounded focus:ring-1 focus:ring-blue-500 outline-none text-gray-800"
+                                  placeholder="Nama dokumen..."
+                                  autoFocus
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") handleSaveFileName(q.id, link);
+                                    if (e.key === "Escape") setEditingFileLink(null);
+                                  }}
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => handleSaveFileName(q.id, link)}
+                                  className="bg-green-600 hover:bg-green-700 text-white text-[11px] px-2 py-1 rounded font-bold transition-colors"
+                                  title="Simpan Nama Dokumen"
+                                >
+                                  ✓
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingFileLink(null)}
+                                  className="bg-gray-200 hover:bg-gray-300 text-gray-700 text-[11px] px-2 py-1 rounded transition-colors"
+                                  title="Batal"
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                            );
+                          }
+
+                          return (
+                            <div key={i} className="flex items-center gap-1 group/file max-w-full">
+                              <a
+                                href={link}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                title={`Klik untuk membuka: ${displayName}`}
+                                className="bg-[#2a75c3] hover:bg-blue-800 text-white text-[10px] font-medium px-2 py-1 rounded flex items-center gap-1.5 transition-colors truncate max-w-[210px] shadow-2xs"
                               >
-                                ✕
-                              </button>
-                            )}
-                          </div>
-                        ))}
+                                <span className="shrink-0">📄</span>
+                                <span className="truncate">{displayName}</span>
+                              </a>
+
+                              {/* Tombol Edit Nama (GKM / KPMA) */}
+                              {canEditGKM && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setEditingFileLink(link);
+                                    setEditFileNameValue(ans.buktiNames?.[link] || defaultName);
+                                  }}
+                                  className="text-gray-400 hover:text-blue-600 p-1 rounded hover:bg-blue-50 transition-colors shrink-0"
+                                  title="Ubah Nama Dokumen"
+                                >
+                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                  </svg>
+                                </button>
+                              )}
+
+                              {/* Tombol Hapus File (KPMA) */}
+                              {userRole === "KPMA" && (
+                                <button 
+                                  onClick={() => handleDeleteFile(q.id, link)}
+                                  className="text-gray-400 hover:text-red-600 p-1 rounded hover:bg-red-50 transition-colors shrink-0"
+                                  title="Hapus File"
+                                >
+                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                                  </svg>
+                                </button>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   </td>

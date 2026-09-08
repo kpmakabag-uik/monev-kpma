@@ -10,6 +10,7 @@ interface AnswerItem {
   evaluasiDiri?: string;
   pilihan?: string;
   buktiLinks?: string[];
+  buktiNames?: Record<string, string>;
   catatanAuditor?: string;
   kesesuaianBukti?: string;
 }
@@ -237,8 +238,9 @@ export default function ReportView({ prodi, records, cycle, userRole }: ReportVi
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
-                    {questions.map((q: Question) => {
+                    {questions.map((q: Question, qIdx: number) => {
                       const ans: AnswerItem = record.answers[q.id] || {};
+                      const letter = String.fromCharCode(65 + qIdx);
                       return (
                         <tr key={q.id} className="hover:bg-gray-50/50">
                           <td className="px-6 py-4 border-r align-top font-medium text-gray-700 min-w-[200px]">{q.text}</td>
@@ -247,14 +249,20 @@ export default function ReportView({ prodi, records, cycle, userRole }: ReportVi
                           <td className="px-6 py-4 border-r align-top">
                             {ans.buktiLinks && ans.buktiLinks.length > 0 ? (
                               <div className="flex flex-col gap-1">
-                                {ans.buktiLinks.map((link: string, i: number) => (
-                                  <a key={i} href={link} target="_blank" rel="noopener noreferrer" 
-                                    className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 px-2 py-1 rounded text-[10px] font-bold border border-blue-200 transition-colors w-fit"
-                                  >
-                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
-                                    Lihat Bukti {i + 1}
-                                  </a>
-                                ))}
+                                {ans.buktiLinks.map((link: string, i: number) => {
+                                  const seq = String(i + 1).padStart(2, "0");
+                                  const defaultName = `Dokumen Bukti ${record.instrument.id}-1${letter}-${seq}`;
+                                  const displayName = ans.buktiNames?.[link] || defaultName;
+                                  return (
+                                    <a key={i} href={link} target="_blank" rel="noopener noreferrer" 
+                                      title={displayName}
+                                      className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 px-2 py-1 rounded text-[10px] font-bold border border-blue-200 transition-colors w-fit max-w-[220px] truncate"
+                                    >
+                                      <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                                      <span className="truncate">{displayName}</span>
+                                    </a>
+                                  );
+                                })}
                               </div>
                             ) : ans.pilihan === "Ya" ? (
                               <span className="text-red-500 font-bold text-[10px] flex items-center gap-1">

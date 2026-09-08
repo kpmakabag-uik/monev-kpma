@@ -67,6 +67,8 @@ export async function POST(request: NextRequest) {
     const parentFolder = type ? "Regulasi" : facultyName;
     const subFolder = type ? (type === "PERATURAN" ? "Peraturan" : "Instrumen") : prodiName;
 
+    const uploadedFiles: Array<{ url: string; originalName: string }> = [];
+
     // Upload all files sequentially
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
@@ -87,6 +89,8 @@ export async function POST(request: NextRequest) {
         fileName = `${safeFac}_${safeJenjang}_${safeProdi}_${safeTahun}-${safeSem}_${instrumentId}_${safeKat}_Tabel_${qId}_${fileOffset + i + 1}.${safeExt}`;
       }
 
+      let finalUrl = "";
+
       if (storageType === "LOCAL") {
         // === LOGIKA PENYIMPANAN LOKAL ===
         const uploadDir = path.join(process.cwd(), "public", "uploads", parentFolder, subFolder);
@@ -101,9 +105,9 @@ export async function POST(request: NextRequest) {
         await fs.writeFile(filePath, buffer);
         
         // Construct the local URL (publicly accessible)
-        // Format: /uploads/Parent/Sub/FileName
-        const localUrl = `/uploads/${encodeURIComponent(parentFolder)}/${encodeURIComponent(subFolder)}/${encodeURIComponent(fileName)}`;
-        uploadedLinks.push(localUrl);
+        finalUrl = `/uploads/${encodeURIComponent(parentFolder)}/${encodeURIComponent(subFolder)}/${encodeURIComponent(fileName)}`;
+        uploadedLinks.push(finalUrl);
+        uploadedFiles.push({ url: finalUrl, originalName: file.name });
 
       } else {
         // === LOGIKA GOOGLE DRIVE (APPS SCRIPT) ===
@@ -130,7 +134,9 @@ export async function POST(request: NextRequest) {
 
         const result = await response.json();
         if (result.success && result.url) {
-          uploadedLinks.push(result.url);
+          finalUrl = result.url;
+          uploadedLinks.push(finalUrl);
+          uploadedFiles.push({ url: finalUrl, originalName: file.name });
         } else {
           throw new Error(result.error || "Gagal mengunggah ke Apps Script");
         }
@@ -142,7 +148,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, url: uploadedLinks[0] });
     }
 
-    return NextResponse.json({ success: true, links: uploadedLinks });
+    return NextResponse.json({ success: true, links: uploadedLinks, files: uploadedFiles });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Terjadi kesalahan";
     console.error("Upload Error:", error);

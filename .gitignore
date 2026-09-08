@@ -45,3 +45,6 @@ next-env.d.ts
 # Database backups & dumps
 backups/
 *.sql.zip
+
+# Scratch testing files
+scratch/

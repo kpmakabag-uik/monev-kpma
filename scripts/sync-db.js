@@ -342,6 +342,21 @@ async function importSqlFile(targetConfig, filePath) {
     throw new Error(`File SQL "${filePath}" tidak ditemukan!`);
   }
 
+  // 1. Coba naikkan max_allowed_packet di target database jika user memiliki izin
+  try {
+    const preConn = await mysql.createConnection({
+      host: targetConfig.host,
+      port: targetConfig.port,
+      user: targetConfig.user,
+      password: targetConfig.password,
+      ssl: targetConfig.ssl
+    });
+    await preConn.query('SET GLOBAL max_allowed_packet = 134217728;'); // 128MB
+    await preConn.end();
+  } catch (_) {
+    // Abaikan jika user bukan root/tidak punya hak SUPER
+  }
+
   console.log(`\n[IMPORT] Membaca file SQL: ${filePath}...`);
   const sql = fs.readFileSync(filePath, 'utf8');
 

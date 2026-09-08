@@ -2,6 +2,7 @@
   "KPMA": [
     "main.dashboard",
     "main.pengisian_monev",
+    "main.bukti",
     "main.laporan_analisis",
     "main.laporan_analisis.laporan_monev",
     "main.laporan_analisis.laporan_eksekutif_prodi",
@@ -25,6 +26,7 @@
   "GPM": [
     "main.dashboard",
     "main.pengisian_monev",
+    "main.bukti",
     "main.laporan_analisis.laporan_monev",
     "main.laporan_analisis.analisis_monev",
     "regulasi.menu",
@@ -34,6 +36,7 @@
   "GKM": [
     "main.dashboard",
     "main.pengisian_monev",
+    "main.bukti",
     "main.laporan_analisis.laporan_monev",
     "main.laporan_analisis.analisis_monev",
     "regulasi.menu",
@@ -42,6 +45,7 @@
   ],
   "PIMPINAN_FAKULTAS": [
     "main.dashboard",
+    "main.bukti",
     "main.laporan_analisis.laporan_monev",
     "main.laporan_analisis.analisis_monev",
     "regulasi.menu",
@@ -49,6 +53,7 @@
   ],
   "PIMPINAN_UNIVERSITAS": [
     "main.dashboard",
+    "main.bukti",
     "main.laporan_analisis.laporan_monev",
     "main.laporan_analisis.analisis_monev",
     "regulasi.menu",

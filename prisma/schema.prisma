@@ -113,8 +113,34 @@ model prodi {
   monevsubmission monevsubmission[]
   faculty         faculty           @relation(fields: [facultyId], references: [id], onDelete: NoAction, map: "Prodi_facultyId_fkey")
   user            user[]
+  monevevidence   monevevidence[]
 
   @@index([facultyId], map: "Prodi_facultyId_fkey")
+}
+
+model monevevidence {
+  id             String   @id @default(cuid())
+  prodiId        String
+  instrumentId   String
+  category       String?
+  questionId     String
+  questionNo     String?
+  questionText   String?  @db.Text
+  evaluasiDiri   String?  @db.Text
+  tahun_akademik String
+  semester       String
+  url            String   @db.VarChar(1024)
+  fileName       String   @db.VarChar(512)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @default(now())
+
+  prodi          prodi    @relation(fields: [prodiId], references: [id], onDelete: Cascade)
+
+  @@index([prodiId])
+  @@index([instrumentId])
+  @@index([category])
+  @@index([fileName])
+  @@index([tahun_akademik, semester])
 }
 
 model session {

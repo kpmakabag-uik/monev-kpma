@@ -5,10 +5,11 @@ import { auth } from "@/auth";
 import { encrypt, decrypt } from "@/lib/encryption";
 import { revalidatePath } from "next/cache";
 
-interface AnswerItem {
+export interface AnswerItem {
   evaluasiDiri?: string;
   pilihan?: string;
   buktiLinks?: string[];
+  buktiNames?: Record<string, string>;
   catatanAuditor?: string;
   kesesuaianBukti?: string;
 }
@@ -58,7 +59,7 @@ export async function saveMonevRecord({
         const end = new Date(cycle.endDate);
         end.setHours(23, 59, 59, 999);
         if (new Date() > end) {
-          return { success: false, error: "Batas waktu pengisian MONEV untuk siklus ini telah berakhir (Form Terkunci)." };
+          return { success: false, error: "Batas waktu pengisian untuk siklus ini telah berakhir." };
         }
       }
 
@@ -71,18 +72,13 @@ export async function saveMonevRecord({
           }
         }
       });
+
       if (submission?.isSubmitted) {
-        return { success: false, error: "Pengisian telah difinalisasi dan dikunci dengan Pakta Integritas." };
+        return { success: false, error: "Data monev telah difinalisasi dan dikunci. Hubungi KPMA untuk membuka kembali." };
       }
     }
 
-    // In a real app we could rigorously validate if they changed restricted fields, 
-    // but the Client Component already disables them.
-    // For upsert, we might want to fetch existing first, and ONLY apply modifications on allowed fields
-
-    // Simple path: Upsert all fields that are passed from client
-    // Note: To be secure, Backend should reconstruct the JSON by only replacing allowed fields.
-
+    // Fetch existing answers to merge
     const existing = await prisma.monevrecord.findUnique({
       where: {
         prodiId_instrumentId_tahun_akademik_semester: {
@@ -91,11 +87,14 @@ export async function saveMonevRecord({
       }
     });
 
-    let decryptedExisting = "{}";
-    if (existing?.answers) {
-      decryptedExisting = existing.answers.includes(":") ? decrypt(existing.answers as string) : existing.answers as string;
+    let mergedAnswers: Record<string, AnswerItem> = {};
+    if (existing && existing.answers) {
+      try {
+        mergedAnswers = JSON.parse(decrypt(existing.answers as string));
+      } catch {
+        mergedAnswers = {};
+      }
     }
-    const mergedAnswers: Record<string, AnswerItem> = existing ? JSON.parse(decryptedExisting) : {};
 
     // Merge answers based on role permissions
     Object.keys(answers).forEach(qId => {
@@ -107,6 +106,12 @@ export async function saveMonevRecord({
         mergedAnswers[qId].evaluasiDiri = qAns.evaluasiDiri;
         mergedAnswers[qId].pilihan = qAns.pilihan;
         if (qAns.buktiLinks) mergedAnswers[qId].buktiLinks = qAns.buktiLinks;
+        if (qAns.buktiNames) {
+          mergedAnswers[qId].buktiNames = {
+            ...(mergedAnswers[qId].buktiNames || {}),
+            ...qAns.buktiNames
+          };
+        }
       }
 
       if (role === "GPM" || role === "KPMA") {
@@ -140,6 +145,87 @@ export async function saveMonevRecord({
         tindak_lanjut_kpma: finalTindakLanjut,
       }
     });
+
+    // Sinkronisasi ke tabel monevevidence untuk indexing dan pencarian cepat
+    try {
+      const instObj = await prisma.instrument.findUnique({
+        where: { id: instrumentId },
+        select: { questions: true, category: true }
+      });
+      const qTextMap = new Map<string, string>();
+      if (instObj?.questions) {
+        try {
+          const parsed = JSON.parse(instObj.questions);
+          if (Array.isArray(parsed)) {
+            parsed.forEach((q: { id: string; text: string }) => {
+              if (q.id && q.text) qTextMap.set(q.id, q.text);
+            });
+          }
+        } catch (_) {}
+      }
+
+      await prisma.monevevidence.deleteMany({
+        where: {
+          prodiId,
+          instrumentId,
+          tahun_akademik: tahunAkademik,
+          semester,
+        }
+      });
+
+      const evidenceRecords: Array<{
+        prodiId: string;
+        instrumentId: string;
+        category?: string | null;
+        questionId: string;
+        questionNo?: string | null;
+        questionText?: string | null;
+        evaluasiDiri?: string | null;
+        tahun_akademik: string;
+        semester: string;
+        url: string;
+        fileName: string;
+      }> = [];
+
+      Object.keys(mergedAnswers).forEach(qId => {
+        const item = mergedAnswers[qId];
+        if (Array.isArray(item.buktiLinks) && item.buktiLinks.length > 0) {
+          const qText = qTextMap.get(qId) || null;
+          const evDiri = item.evaluasiDiri || null;
+          const qNum = qId.replace(/[^0-9]/g, "") || "1";
+          const qLetter = String.fromCharCode(65 + ((parseInt(qNum) - 1) % 26));
+
+          item.buktiLinks.forEach((url, idx) => {
+            const customName = item.buktiNames?.[url];
+            const seq = String(idx + 1).padStart(2, "0");
+            const defaultName = `Dokumen Bukti ${instrumentId}-1${qLetter}-${seq}`;
+            const finalName = customName && customName.trim() ? customName.trim() : defaultName;
+
+            evidenceRecords.push({
+              prodiId,
+              instrumentId,
+              category: instObj?.category || null,
+              questionId: qId,
+              questionNo: `1${qLetter}`,
+              questionText: qText,
+              evaluasiDiri: evDiri,
+              tahun_akademik: tahunAkademik,
+              semester,
+              url,
+              fileName: finalName,
+            });
+          });
+        }
+      });
+
+      if (evidenceRecords.length > 0) {
+        await prisma.monevevidence.createMany({
+          data: evidenceRecords,
+        });
+      }
+    } catch (evErr) {
+      console.warn("Sinkronisasi monevevidence warning:", evErr);
+    }
 
     return { success: true };
   } catch (err: unknown) {
