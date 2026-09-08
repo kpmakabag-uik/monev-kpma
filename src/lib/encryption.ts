@@ -1,12 +1,13 @@
 import crypto from "crypto";
 
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || "temporary_default_key_for_simonev_development_32_bytes"; // Must be 32 bytes/characters
+const RAW_KEY = process.env.ENCRYPTION_KEY || "temporary_default_key_for_simonev_development_32_bytes";
+const KEY = crypto.createHash("sha256").update(RAW_KEY).digest();
 const IV_LENGTH = 12; // For AES-256-GCM
 
 export function encrypt(text: string): string {
   try {
     const iv = crypto.randomBytes(IV_LENGTH);
-    const cipher = crypto.createCipheriv("aes-256-gcm", Buffer.from(ENCRYPTION_KEY), iv);
+    const cipher = crypto.createCipheriv("aes-256-gcm", KEY, iv);
     
     let encrypted = cipher.update(text, "utf8", "hex");
     encrypted += cipher.final("hex");
@@ -34,7 +35,7 @@ export function decrypt(encryptedData: string): string {
 
     const iv = Buffer.from(ivHex, "hex");
     const authTag = Buffer.from(authTagHex, "hex");
-    const decipher = crypto.createDecipheriv("aes-256-gcm", Buffer.from(ENCRYPTION_KEY), iv);
+    const decipher = crypto.createDecipheriv("aes-256-gcm", KEY, iv);
     decipher.setAuthTag(authTag);
     
     let decrypted = decipher.update(encryptedHex, "hex", "utf8");
