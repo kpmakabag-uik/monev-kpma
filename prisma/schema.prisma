@@ -24,6 +24,7 @@ model account {
 
   @@unique([provider, providerAccountId], map: "Account_provider_providerAccountId_key")
   @@index([userId], map: "Account_userId_fkey")
+  @@map("Account")
 }
 
 model cycle {
@@ -35,6 +36,7 @@ model cycle {
   endDate        DateTime?
 
   @@unique([tahun_akademik, semester], map: "Cycle_tahun_akademik_semester_key")
+  @@map("Cycle")
 }
 
 model document {
@@ -44,6 +46,8 @@ model document {
   description String?  @db.Text
   fileUrl     String?  @db.Text
   createdAt   DateTime @default(now())
+
+  @@map("Document")
 }
 
 model faculty {
@@ -51,6 +55,8 @@ model faculty {
   name  String
   prodi prodi[]
   user  user[]
+
+  @@map("Faculty")
 }
 
 model instrument {
@@ -62,11 +68,15 @@ model instrument {
   jenjang_peruntukan String
   questions          String        @db.Text
   monevrecord        monevrecord[]
+
+  @@map("Instrument")
 }
 
 model level {
   id   String @id @default(cuid())
   name String @unique(map: "Level_name_key")
+
+  @@map("Level")
 }
 
 model monevrecord {
@@ -86,6 +96,7 @@ model monevrecord {
 
   @@unique([prodiId, instrumentId, tahun_akademik, semester], map: "MonevRecord_prodiId_instrumentId_tahun_akademik_semester_key")
   @@index([instrumentId], map: "MonevRecord_instrumentId_fkey")
+  @@map("MonevRecord")
 }
 
 model monevsubmission {
@@ -102,6 +113,7 @@ model monevsubmission {
 
   @@unique([prodiId, tahun_akademik, semester], map: "MonevSubmission_prodi_cycle_key")
   @@index([prodiId], map: "MonevSubmission_prodiId_fkey")
+  @@map("MonevSubmission")
 }
 
 model prodi {
@@ -116,6 +128,7 @@ model prodi {
   monevevidence   monevevidence[]
 
   @@index([facultyId], map: "Prodi_facultyId_fkey")
+  @@map("Prodi")
 }
 
 model monevevidence {
@@ -141,6 +154,7 @@ model monevevidence {
   @@index([category])
   @@index([fileName])
   @@index([tahun_akademik, semester])
+  @@map("MonevEvidence")
 }
 
 model session {
@@ -151,12 +165,15 @@ model session {
   user         user     @relation(fields: [userId], references: [id], onDelete: Cascade, map: "Session_userId_fkey")
 
   @@index([userId], map: "Session_userId_fkey")
+  @@map("Session")
 }
 
 model setting {
   id            String  @id @default(cuid())
   appscript_url String?
   storage_type  String  @db.VarChar(512)
+
+  @@map("Setting")
 }
 
 model user {
@@ -177,6 +194,7 @@ model user {
 
   @@index([facultyId], map: "User_facultyId_fkey")
   @@index([prodiId], map: "User_prodiId_fkey")
+  @@map("User")
 }
 
 model verificationtoken {
@@ -185,4 +203,5 @@ model verificationtoken {
   expires    DateTime
 
   @@unique([identifier, token], map: "VerificationToken_identifier_token_key")
+  @@map("VerificationToken")
 }
