@@ -70,7 +70,7 @@ function parseDbUrl(rawUrl) {
     const dbName = parsed.pathname.replace(/^\//, '').split('?')[0];
 
     return {
-      host: parsed.hostname || '127.0.0.1',
+      host: (!parsed.hostname || parsed.hostname === 'localhost') ? '127.0.0.1' : parsed.hostname,
       port: parsed.port ? parseInt(parsed.port, 10) : 3306,
       user: decodeURIComponent(parsed.username || 'root'),
       password: decodeURIComponent(parsed.password || ''),

@@ -107,8 +107,17 @@ export default function Header() {
         )}
       </div>
       
-      {/* Right section: Active Cycle badge */}
-      <div className="flex items-center shrink-0">
+      {/* Right section: Panduan Button & Active Cycle badge */}
+      <div className="flex items-center gap-2 md:gap-3 shrink-0">
+        <Link
+          href="/panduan"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 md:py-2 bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 text-institusi rounded-lg text-xs font-bold border border-blue-200 shadow-sm transition-all hover:shadow active:scale-95 group"
+          title="Buka Pusat Panduan & Pedoman Penggunaan Interaktif"
+        >
+          <span className="text-sm group-hover:scale-110 transition-transform">💡</span>
+          <span className="hidden sm:inline">Panduan Interaktif</span>
+        </Link>
+
         <div className="bg-blue-50 border border-blue-100 px-3 py-1.5 md:px-4 md:py-2 rounded-lg flex items-center gap-2.5 shadow-inner">
           <div className="relative flex h-2 w-2 md:h-2.5 md:w-2.5">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-institusi opacity-40"></span>

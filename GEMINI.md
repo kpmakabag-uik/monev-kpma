@@ -31,6 +31,7 @@ Sidebar aplikasi dikelompokkan ke dalam **2 Kategori Utama** yang ergonomis dan 
 │   │   ├── Eksekutif (Univ)     -> /laporan-eksekutif/universitas
 │   │   └── Analisis KPMA        -> /master/analisis
 │   └── Regulasi & Panduan ▾
+│       ├── Panduan Interaktif   -> /panduan
 │       ├── Peraturan SPMI       -> /regulasi/peraturan
 │       └── Panduan Instrumen    -> /regulasi/instrumen
 │
@@ -100,14 +101,21 @@ Sidebar aplikasi dikelompokkan ke dalam **2 Kategori Utama** yang ergonomis dan 
 
 ## 5. Konvensi Kode & Panduan Pengembang
 
-1. **Penamaan Model Prisma:**
+1. **Penamaan Model Prisma & Pemetaan Tabel Database (`@@map`):**
    - Model Prisma di skema didefinisikan dengan huruf kecil: `prisma.monevrecord`, `prisma.monevsubmission`, `prisma.cycle`, `prisma.prodi`, `prisma.faculty`.
    - Hindari pemanggilan PascalCase seperti `prisma.monevRecord` karena akan menyebabkan error TypeScript.
-2. **Relasi Fakultas - Prodi:**
+   - **KRUSIAL (Kompatibilitas Linux MySQL Production):** Seluruh model di `prisma/schema.prisma` **wajib** memiliki atribut `@@map("NamaTabelPascalCase")` (contoh: `@@map("Cycle")`, `@@map("MonevRecord")`, `@@map("Prodi")`, `@@map("MonevEvidence")`). 
+     - *Alasan:* Database MySQL di lingkungan server Linux (Aiven Cloud / VPS / Hosting) bersifat **case-sensitive** (`lower_case_table_names = 0`). Tanpa `@@map`, query SQL akan mencari tabel huruf kecil (`cycle`, `monevrecord`) dan melempar error `Table doesn't exist` (HTTP 500 Internal Server Error di Vercel/Production).
+2. **Konfigurasi Prisma Versi 6+ (`prisma.config.ts`):**
+   - Prisma tidak lagi menggunakan blok `"prisma"` di `package.json` (telah deprecated).
+   - Konfigurasi dipusatkan pada `prisma.config.ts` di root proyek dengan memuat `dotenv/config` di baris pertama agar environment variable (`DATABASE_URL`) tetap terbaca saat build/generasi skema.
+3. **Konfigurasi Skrip Instalasi NPM (`allowScripts` di `package.json`):**
+   - Pada runtime Node.js/NPM terbaru (v11+), paket biner seperti `@prisma/client`, `@prisma/engines`, `sharp`, dan `esbuild` didaftarkan pada blok `"allowScripts"` di `package.json` untuk memastikan siklus instalasi/postinstall berjalan lancar tanpa peringatan blokir skrip di server deployment.
+4. **Relasi Fakultas - Prodi:**
    - Gunakan nama field relasi `faculty.prodi` (bukan `faculty.prodis`).
-3. **Pencocokan Rute Sidebar:**
+5. **Pencocokan Rute Sidebar:**
    - Gunakan fungsi `isHrefActive` di `Sidebar.tsx` untuk membedakan rute yang memiliki awalan kata mirip (contoh: `/laporan`, `/laporan-eksekutif`, `/laporan-eksekutif/universitas`).
-4. **Navigasi Universal:**
+6. **Navigasi Universal:**
    - Komponen `Header.tsx` menyediakan tombol navigasi universal `[ ← Kembali ]` dan breadcrumb otomatis pada seluruh halaman di luar dashboard.
 
 ---
